@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		1A10A3E02F31309200160E66 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		1A7154082F31449500E03EF4 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A8125DE2F312E3000DD0AEC /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A8DC9A12F311E59000759E9 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC50E2F31199C002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
@@ -56,6 +57,13 @@
 
 /* Begin PBXGroup section */
 		1A10A3E42F31309200160E66 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A71540C2F31449500E03EF4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -183,6 +191,22 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = 1A10A3E42F31309200160E66 /* Products */;
+					ProjectRef = 1A10A3E02F31309200160E66 /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = 1A8125E22F312E3000DD0AEC /* Products */;
+					ProjectRef = 1A8125DE2F312E3000DD0AEC /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = 1A8DC9A52F311E59000759E9 /* Products */;
+					ProjectRef = 1A8DC9A12F311E59000759E9 /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = DA803B8F2F31278200B26F63 /* Products */;
+					ProjectRef = DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */;
+				},
+				{
 					ProductGroup = 1ABFC5112F31199C002AEF13 /* Products */;
 					ProjectRef = 1ABFC50E2F31199C002AEF13 /* capyaccountability.xcodeproj */;
 				},
@@ -195,20 +219,8 @@
 					ProjectRef = 1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */;
 				},
 				{
-					ProductGroup = 1A8125E22F312E3000DD0AEC /* Products */;
-					ProjectRef = 1A8125DE2F312E3000DD0AEC /* capyaccountability.xcodeproj */;
-				},
-				{
-					ProductGroup = 1A10A3E42F31309200160E66 /* Products */;
-					ProjectRef = 1A10A3E02F31309200160E66 /* capyaccountability.xcodeproj */;
-				},
-				{
-					ProductGroup = 1A8DC9A52F311E59000759E9 /* Products */;
-					ProjectRef = 1A8DC9A12F311E59000759E9 /* capyaccountability.xcodeproj */;
-				},
-				{
-					ProductGroup = DA803B8F2F31278200B26F63 /* Products */;
-					ProjectRef = DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */;
+					ProductGroup = 1A71540C2F31449500E03EF4 /* Products */;
+					ProjectRef = 1A7154082F31449500E03EF4 /* capyaccountability.xcodeproj */;
 				},
 				{
 					ProductGroup = 1ABFC5472F311C08002AEF13 /* Products */;

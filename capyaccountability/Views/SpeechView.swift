@@ -2,6 +2,8 @@ import AuthenticationServices
 import SwiftUI
 
 struct SpeechView: View {
+    @State private var name = ""
+    
     var body: some View {
         ZStack {
             Color.capyBlue
@@ -26,6 +28,22 @@ struct SpeechView: View {
             .ignoresSafeArea()
             
             VStack {
+                
+                Spacer()
+                
+                HStack {
+                    TextField("name", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                        .submitLabel(.send)
+                    
+                    Button("Continue") {
+                        print("Name: ", name)
+                        name = ""
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+                .padding(.horizontal, 20)
                                 
                 Spacer()
                 

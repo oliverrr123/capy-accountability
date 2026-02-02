@@ -8,9 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var name = ""
+    
     var body: some View {
         InitialView()
-//        SpeechView()
+//        SpeechView2(name: $name) {
+//            print("Name: ", name)
+//            name = ""
+//        }
     }
 }
 
