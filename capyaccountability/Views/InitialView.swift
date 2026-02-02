@@ -34,7 +34,7 @@ struct InitialView: View {
                     Text("Accountability")
                         .font(.custom("CherryBombOne-Regular", size: 32))
                         .foregroundStyle(.white)
-                        .shadow(color: .skyBlue.opacity(1), radius: 4, x: 1, y: 2)
+                        .shadow(color: .skyBlue.opacity(1), radius: 5, x: 2, y: 1)
                         .padding(.top, -18)
                 }
                 
