@@ -5,6 +5,9 @@
 	<key>UIAppFonts</key>
 	<array>
 		<string>CherryBombOne-Regular.ttf</string>
+		<string>Gaegu-Regular.ttf</string>
+		<string>Gaegu-Light.ttf</string>
+		<string>Gaegu-Bold.ttf</string>
 	</array>
 </dict>
 </plist>

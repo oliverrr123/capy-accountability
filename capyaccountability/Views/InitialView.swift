@@ -11,8 +11,10 @@ struct InitialView: View {
             
             LinearGradient(
                 colors: [
-                    Color.black.opacity(0.15),
-                    Color.black.opacity(0.6)
+                    Color.black.opacity(0.2),
+                    Color.black.opacity(0.1),
+                    Color.black.opacity(0),
+                    Color.black.opacity(0)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -23,16 +25,17 @@ struct InitialView: View {
                 Spacer()
                     .frame(height: 100)
                 
-                VStack(spacing: 6) {
+                VStack(spacing: 0) {
                     Text("Capy")
-                        .font(.custom("CherryBombOne-Regular", size: 96))
+                        .font(.custom("CherryBombOne-Regular", size: 128))
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 3)
+                        .shadow(color: .skyBlue.opacity(1), radius: 20, x: 0, y: 4)
                     
                     Text("Accountability")
                         .font(.custom("CherryBombOne-Regular", size: 32))
                         .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.25), radius: 4, x: 0, y: 2)
+                        .shadow(color: .skyBlue.opacity(1), radius: 4, x: 1, y: 2)
+                        .padding(.top, -18)
                 }
                 
                 Spacer()
@@ -52,8 +55,8 @@ struct InitialView: View {
                 
                 }
                 .padding(24)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 44, style: .continuous))
+//                .background(.ultraThinMaterial)
+//                .clipShape(RoundedRectangle(cornerRadius: 44, style: .continuous))
                 .padding(.horizontal, 20)
                 .padding(.bottom, 52)
             }
