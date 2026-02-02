@@ -13,6 +13,7 @@
 		1ABFC5432F311C08002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DA4B7CBD2F2C094100877845 /* capyaccountability.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = capyaccountability.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -104,6 +105,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		DA803B8F2F31278200B26F63 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -173,6 +181,10 @@
 				{
 					ProductGroup = 1A8DC9A52F311E59000759E9 /* Products */;
 					ProjectRef = 1A8DC9A12F311E59000759E9 /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = DA803B8F2F31278200B26F63 /* Products */;
+					ProjectRef = DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */;
 				},
 				{
 					ProductGroup = 1ABFC5472F311C08002AEF13 /* Products */;
