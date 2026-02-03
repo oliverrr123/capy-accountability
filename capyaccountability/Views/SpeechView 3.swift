@@ -7,6 +7,8 @@ struct SpeechView3: View {
     
     @FocusState private var nameFocused: Bool
     
+    @StateObject private var mic = MicLevelMeter()
+    
     var body: some View {
         ZStack {
             Color.capyBlue
@@ -58,22 +60,35 @@ struct SpeechView3: View {
                     }
                     
                     VStack {
-                        Button(action: submit) {
-                            Image("mic_blue")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 96, height: 96)
+                        //                        Button(action: submit) {
+                        //                            Image("mic_blue")
+                        //                                .resizable()
+                        //                                .scaledToFit()
+                        //                                .frame(width: 96, height: 96)
+                        //                                .padding(24)
+                        //                        }
+                        //                        .background(.white)
+                        //                        .clipShape(Circle())
+                        
+                        //                        Text("Write instead")
+                        //                            .foregroundStyle(.gray, .opacity(0.5))
+                        //                            .font(.custom("Gaegu-Regular", size: 28))
+                        //                            .padding(.bottom, 18)
+                        
+                        Button {
+                            if mic.isRunning { mic.stop() } else { mic.start() }
+                        } label: {
+                            SoundBars(level: mic.level)
+                                .foregroundStyle(Color.capyBlue)
+                                .frame(width: 128, height: 128)
                                 .padding(24)
                         }
                         .background(.white)
                         .clipShape(Circle())
-                        
-//                        Text("Write instead")
-//                            .foregroundStyle(.gray, .opacity(0.5))
-//                            .font(.custom("Gaegu-Regular", size: 28))
-//                            .padding(.bottom, 18)
+
                     }
                 }
+
                 
                 Spacer()
                 
