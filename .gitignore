@@ -1,4 +1,5 @@
 CapySwifty/.DS_Store
 .DS_Store
 fig.py
-pixelize-images.pySecrets.xcconfig
+pixelize-images.py
+Secrets.xcconfig
