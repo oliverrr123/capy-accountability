@@ -33,7 +33,7 @@ struct InitialView: View {
                             .foregroundStyle(.white)
                             .shadow(color: .skyBlue.opacity(1), radius: 20, x: 0, y: 4)
                         
-                        Text("Accountabilityo")
+                        Text("Accountability")
                             .font(.custom("CherryBombOne-Regular", size: 32))
                             .foregroundStyle(.white)
                             .shadow(color: .skyBlue.opacity(1), radius: 5, x: 2, y: 1)
@@ -47,7 +47,7 @@ struct InitialView: View {
                 Spacer()
                 
                 VStack(spacing: 14) {
-                    CapyButton(title: "Continue", style: .primary, action: onContinue)
+                    CapyButton(title: "Continue", style: .skyLight(base: .white, overlay: "sky_light"), action: onContinue)
                 }
                 .padding(24)
 //                .background(.ultraThinMaterial)

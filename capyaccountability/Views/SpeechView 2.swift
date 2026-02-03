@@ -3,16 +3,19 @@ import SwiftUI
 
 struct SpeechView2: View {
     @Binding var name: String
+    var onBack: () -> Void
     var onSubmit: () -> Void
     
     @FocusState private var nameFocused: Bool
+    
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ZStack {
             Color.capyBlue
                 .ignoresSafeArea()
             
-            Image("wallpaper")
+            Image("capy_wallpaper")
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
@@ -88,6 +91,11 @@ struct SpeechView2: View {
                 
                 Spacer()
             }
+        }
+        .overlay(alignment: .bottomLeading) {
+            BackButton(action: onBack)
+                .padding(.leading, 18)
+                .padding(.bottom, 32)
         }
     }
     

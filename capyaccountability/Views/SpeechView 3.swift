@@ -1,13 +1,17 @@
 import AuthenticationServices
+import AVFoundation
 import SwiftUI
 
 struct SpeechView3: View {
     @Binding var name: String
+    var onBack: () -> Void
     var onSubmit: () -> Void
     
     @FocusState private var nameFocused: Bool
     
     @StateObject private var mic = MicLevelMeter()
+    
+    @State private var showBars = false
     
     var body: some View {
         ZStack {
@@ -60,28 +64,27 @@ struct SpeechView3: View {
                     }
                     
                     VStack {
-                        //                        Button(action: submit) {
-                        //                            Image("mic_blue")
-                        //                                .resizable()
-                        //                                .scaledToFit()
-                        //                                .frame(width: 96, height: 96)
-                        //                                .padding(24)
-                        //                        }
-                        //                        .background(.white)
-                        //                        .clipShape(Circle())
                         
                         //                        Text("Write instead")
                         //                            .foregroundStyle(.gray, .opacity(0.5))
                         //                            .font(.custom("Gaegu-Regular", size: 28))
                         //                            .padding(.bottom, 18)
                         
-                        Button {
-                            if mic.isRunning { mic.stop() } else { mic.start() }
-                        } label: {
-                            SoundBars(level: mic.level)
-                                .foregroundStyle(Color.capyBlue)
-                                .frame(width: 128, height: 128)
-                                .padding(24)
+                        Button(action: micTapped) {
+                            Group {
+                                if showBars && mic.isRunning {
+                                    SoundBars(level: mic.level)
+                                        .foregroundStyle(Color.capyBlue)
+                                        .frame(width: 128, height: 128)
+                                } else {
+                                    Image("mic_blue")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 128, height: 128)
+                                }
+                            }
+                            .padding(24)
+                            
                         }
                         .background(.white)
                         .clipShape(Circle())
@@ -95,11 +98,62 @@ struct SpeechView3: View {
                 Spacer()
             }
         }
+        .overlay(alignment: .bottomLeading) {
+            BackButton(action: onBack)
+                .padding(.leading, 18)
+                .padding(.bottom, 32)
+        }
     }
     
     private func submit() {
         nameFocused = false
         onSubmit()
+    }
+    
+    private func micTapped() {
+        if mic.isRunning {
+            mic.stop()
+            showBars = false
+            return
+        }
+        
+        let start = {
+            mic.start()
+            showBars = true
+        }
+        
+        if #available(iOS 17.0, *) {
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted:
+                start()
+            case .undetermined:
+                AVAudioApplication.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        if granted { start() }
+                    }
+                }
+            case .denied:
+                print("Mic denied - enable in Settings")
+            @unknown default:
+                break
+            }
+        } else {
+            let session = AVAudioSession.sharedInstance()
+            switch session.recordPermission {
+            case .granted:
+                start()
+            case .undetermined:
+                session.requestRecordPermission { granted in
+                    DispatchQueue.main.async {
+                        if granted { start() }
+                    }
+                }
+            case .denied:
+                print("Mic denied - enable in Settings")
+            @unknown default:
+                break
+            }
+        }
     }
 }
 

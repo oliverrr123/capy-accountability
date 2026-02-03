@@ -44,7 +44,7 @@ struct SpeechView: View {
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(.horizontal, 20)
-                                
+                
                 Spacer()
                 
                 
@@ -64,7 +64,7 @@ struct SpeechView: View {
                         .resizable()
                         .scaledToFit()
                         .padding(.bottom, 10)
-                
+                    
                 }
             }
         }

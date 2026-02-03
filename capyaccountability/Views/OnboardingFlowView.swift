@@ -12,7 +12,14 @@ struct OnboardingFlowView: View {
                 InitialView(onContinue: { advance(to: .name) })
                     .transition(.opacity)
             case .name:
-                SpeechView2(name: $name) {
+                SpeechView2(name: $name, onBack: goBack) {
+                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmed.isEmpty else { return }
+                    advance(to: .mic)
+                }
+                .transition(.opacity)
+            case .mic:
+                SpeechView3(name: $name, onBack: goBack) {
                     let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !trimmed.isEmpty else { return }
                     advance(to: .goals)
@@ -50,8 +57,35 @@ struct OnboardingFlowView: View {
         goals = ""
         advance(to: .login)
     }
+    
+    private func goBack() {
+        withAnimation {
+            switch step {
+            case .login: break
+            case .name: step = .login
+            case .mic: step = .name
+            case .goals: step = .mic
+            case .thinking: step = .goals
+            case .itinerary: step = .thinking
+            case .intro: step = .itinerary
+            case .final: step = .intro
+           }
+        }
+    }
 }
 
 #Preview {
     OnboardingFlowView()
+}
+
+struct BackButton: View {
+    var action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.white.opacity(0.5))
+                .frame(width: 60, height: 60)
+        }
+    }
 }

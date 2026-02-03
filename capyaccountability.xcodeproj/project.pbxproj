@@ -13,6 +13,7 @@
 		1A7154082F31449500E03EF4 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A8125DE2F312E3000DD0AEC /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A8DC9A12F311E59000759E9 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		1ABE02102F326FE1000DB74B /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC50E2F31199C002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC52A2F311A91002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC5432F311C08002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
@@ -95,6 +96,13 @@
 			sourceTree = "<group>";
 		};
 		1A8DC9A52F311E59000759E9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1ABE02142F326FE1000DB74B /* Products */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -237,6 +245,10 @@
 				{
 					ProductGroup = 1A5203ED2F32194D00CE2688 /* Products */;
 					ProjectRef = 1A5203E92F32194D00CE2688 /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = 1ABE02142F326FE1000DB74B /* Products */;
+					ProjectRef = 1ABE02102F326FE1000DB74B /* capyaccountability.xcodeproj */;
 				},
 				{
 					ProductGroup = 1ABFC5112F31199C002AEF13 /* Products */;
@@ -413,7 +425,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
+				DEVELOPMENT_TEAM = 7R9434C69C;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -463,7 +475,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
+				DEVELOPMENT_TEAM = 7R9434C69C;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
