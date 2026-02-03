@@ -6,7 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		1A055F7A2F32AEAF007DC0A8 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		1A055F472F328582007DC0A8 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		1A10A3E02F31309200160E66 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A5203E92F32194D00CE2688 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A52041B2F32486E00CE2688 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
@@ -60,6 +66,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1A055F4B2F328582007DC0A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		1A10A3E42F31309200160E66 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -140,6 +153,7 @@
 		DA4B7CB42F2C094100877845 = {
 			isa = PBXGroup;
 			children = (
+				1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */,
 				1ABFC51D2F311A6E002AEF13 /* Resources */,
 				DA4B7CBF2F2C094100877845 /* capyaccountability */,
 				DA4B7CBE2F2C094100877845 /* Products */,
@@ -274,6 +288,10 @@
 					ProductGroup = 1ABFC5472F311C08002AEF13 /* Products */;
 					ProjectRef = 1ABFC5432F311C08002AEF13 /* capyaccountability.xcodeproj */;
 				},
+				{
+					ProductGroup = 1A055F4B2F328582007DC0A8 /* Products */;
+					ProjectRef = 1A055F472F328582007DC0A8 /* capyaccountability.xcodeproj */;
+				},
 			);
 			projectRoot = "";
 			targets = (
@@ -287,6 +305,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1A055F7A2F32AEAF007DC0A8 /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,6 +324,7 @@
 /* Begin XCBuildConfiguration section */
 		DA4B7CC62F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -366,6 +386,7 @@
 		};
 		DA4B7CC72F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -419,6 +440,7 @@
 		};
 		DA4B7CC92F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -469,6 +491,7 @@
 		};
 		DA4B7CCA2F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

@@ -10,8 +10,12 @@ struct SpeechView3: View {
     @FocusState private var nameFocused: Bool
     
     @StateObject private var mic = MicLevelMeter()
+    @StateObject private var speechRecognizer = SpeechRecognizer()
+    @StateObject private var brain = CapyBrain()
     
     @State private var showBars = false
+    
+    @State private var capyText: String = ""
     
     var body: some View {
         ZStack {
@@ -56,9 +60,10 @@ struct SpeechView3: View {
                                 .padding(.horizontal, 20)
                                 .rotationEffect(Angle(degrees: 180))
                             
-                            Text("What's ur name?")
-                                .font(.custom("Gaegu-Regular", size: 28))
+                            Text(capyText)
+                                .font(.custom("Gaegu-Regular", size: 18))
                                 .padding(.bottom, 18)
+                                .padding(.horizontal, 40)
                         }
                         
                     }
@@ -88,6 +93,11 @@ struct SpeechView3: View {
                         }
                         .background(.white)
                         .clipShape(Circle())
+                        
+                        Text(speechRecognizer.transcript)
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .padding(.top, 4)
 
                     }
                 }
@@ -103,6 +113,25 @@ struct SpeechView3: View {
                 .padding(.leading, 18)
                 .padding(.bottom, 32)
         }
+        .onAppear {
+            capyText = "Hey \(name), what are your goals?"
+        }
+    }
+    
+    private func askCapy(text: String) {
+        Task {
+            do {
+                let answer = try await brain.talkToCapy(userText: text)
+                
+                DispatchQueue.main.async {
+                    capyText = answer
+                }
+            } catch {
+                print("Error talking to Capy: \(error)")
+            }
+        }
+        
+        print("Sending to Capy: \(text)")
     }
     
     private func submit() {
@@ -111,14 +140,21 @@ struct SpeechView3: View {
     }
     
     private func micTapped() {
-        if mic.isRunning {
+        if speechRecognizer.isRecording || mic.isRunning {
             mic.stop()
+            speechRecognizer.stopTranscribing()
             showBars = false
+            
+            let finalText = speechRecognizer.transcript
+            if !finalText.isEmpty {
+                askCapy(text: finalText)
+            }
             return
         }
         
         let start = {
             mic.start()
+            speechRecognizer.startTranscribing()
             showBars = true
         }
         
