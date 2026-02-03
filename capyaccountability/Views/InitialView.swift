@@ -1,7 +1,8 @@
-import AuthenticationServices
 import SwiftUI
 
 struct InitialView: View {
+    var onContinue: () -> Void = {}
+    
     var body: some View {
         ZStack {
             Image("capy_wallpaper")
@@ -25,34 +26,28 @@ struct InitialView: View {
                 Spacer()
                     .frame(height: 100)
                 
-                VStack(spacing: 0) {
-                    Text("Capy")
-                        .font(.custom("CherryBombOne-Regular", size: 128))
-                        .foregroundStyle(.white)
-                        .shadow(color: .skyBlue.opacity(1), radius: 20, x: 0, y: 4)
-                    
-                    Text("Accountability")
-                        .font(.custom("CherryBombOne-Regular", size: 32))
-                        .foregroundStyle(.white)
-                        .shadow(color: .skyBlue.opacity(1), radius: 5, x: 2, y: 1)
-                        .padding(.top, -18)
+                Button(action: onContinue) {
+                    VStack(spacing: 0) {
+                        Text("Capy")
+                            .font(.custom("CherryBombOne-Regular", size: 128))
+                            .foregroundStyle(.white)
+                            .shadow(color: .skyBlue.opacity(1), radius: 20, x: 0, y: 4)
+                        
+                        Text("Accountabilityo")
+                            .font(.custom("CherryBombOne-Regular", size: 32))
+                            .foregroundStyle(.white)
+                            .shadow(color: .skyBlue.opacity(1), radius: 5, x: 2, y: 1)
+                            .padding(.top, -18)
+                    }
                 }
+                .buttonStyle(.plain)
                 
                 Spacer()
                 
                 Spacer()
                 
                 VStack(spacing: 14) {
-                    
-                    SignInWithAppleButton(.signIn, onRequest: { _ in
-                        // TODO: Configure request
-                    }, onCompletion: { _ in
-                        // TODO: Handle completion
-                    })
-                    .signInWithAppleButtonStyle(.black)
-                    .frame(height: 67)
-                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                
+                    CapyButton(title: "Continue", style: .primary, action: onContinue)
                 }
                 .padding(24)
 //                .background(.ultraThinMaterial)

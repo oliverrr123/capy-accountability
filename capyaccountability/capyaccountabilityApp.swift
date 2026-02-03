@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct capyaccountabilityApp: App {
+    init() {
+        FontRegistrar.registerFonts()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

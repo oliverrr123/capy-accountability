@@ -17,6 +17,7 @@
 		1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DA4B7CBD2F2C094100877845 /* capyaccountability.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = capyaccountability.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -136,6 +137,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		DAEE88EB2F31EBB500311BFD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -217,6 +225,10 @@
 				{
 					ProductGroup = 1AF1932E2F311DCE00807705 /* Products */;
 					ProjectRef = 1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = DAEE88EB2F31EBB500311BFD /* Products */;
+					ProjectRef = DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */;
 				},
 				{
 					ProductGroup = 1A71540C2F31449500E03EF4 /* Products */;
@@ -377,7 +389,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -426,7 +438,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;

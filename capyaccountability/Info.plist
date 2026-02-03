@@ -4,10 +4,10 @@
 <dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>CherryBombOne-Regular.ttf</string>
-		<string>Gaegu-Regular.ttf</string>
-		<string>Gaegu-Light.ttf</string>
-		<string>Gaegu-Bold.ttf</string>
+		<string>Resources/Fonts/CherryBombOne-Regular.ttf</string>
+		<string>Resources/Fonts/Gaegu-Regular.ttf</string>
+		<string>Resources/Fonts/Gaegu-Light.ttf</string>
+		<string>Resources/Fonts/Gaegu-Bold.ttf</string>
 	</array>
 </dict>
 </plist>
