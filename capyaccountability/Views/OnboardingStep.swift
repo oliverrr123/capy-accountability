@@ -1,0 +1,11 @@
+import Foundation
+
+enum OnboardingStep {
+    case login
+    case name
+    case goals
+    case thinking
+    case itinerary
+    case intro
+    case final
+}

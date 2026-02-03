@@ -8,15 +8,19 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var name = ""
-    
     var body: some View {
 //        InitialView()
            
-        SpeechView3(name: $name) {
-            print("Name: ", name)
-            name = ""
-        }
+//        SpeechView3(name: $name) {
+//            print("Name: ", name)
+//            name = ""
+//        }
+        
+        OnboardingFlowView()
+//        SpeechView2(name: $name) {
+//            print("Name: ", name)
+//            name = ""
+//        }
     }
 }
 
