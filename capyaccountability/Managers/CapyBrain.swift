@@ -21,7 +21,7 @@ class CapyBrain: ObservableObject {
         return value
     }
     
-    func talkToCapy(userText: String) async throws -> String {
+    func talkToCapy(messages: [[String: String]]) async throws -> String {
         guard !apiKey.isEmpty else { return "No API Key >.<" }
         
         let url = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
@@ -30,12 +30,15 @@ class CapyBrain: ObservableObject {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        let systemMessage = [
+            "role": "system",
+            "content": "You are a friendly, chill Capybara named Capy. You speak in short sentences. You love hot springs and yuzu. You are an accountability partner."
+        ]
+        
+        
         let parameters: [String: Any] = [
             "model": "x-ai/grok-4.1-fast",
-            "messages": [
-                ["role": "system", "content": "You are a friendly, chill Capybara named Capy. You speak in short sentences. You love hot springs and yuzu. You are an accountability partner."],
-                ["role": "user", "content": userText]
-            ]
+            "messages": [systemMessage] + messages
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
