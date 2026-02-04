@@ -71,6 +71,11 @@ struct HomeView2: View {
                 }
             }
         }
+        .alert("New Goal", isPresented: $showAddAlert) {
+            TextField("Enter goal...", text: $newTaskText)
+            Button("Add", action: addNewTask)
+            Button("Cancel", role: .cancel) {}
+        }
     }
     
     private var topBar: some View {
@@ -203,6 +208,16 @@ struct HomeView2: View {
         }
         let impact = UIImpactFeedbackGenerator(style: .medium)
         impact.impactOccurred()
+    }
+    
+    private func addNewTask() {
+        guard !newTaskText.isEmpty else { return }
+        
+        let newItem = TaskItem(text: newTaskText, isDone: false)
+        
+        withAnimation {
+            tasks.append(newItem)
+        }
     }
     
     private func deleteTask(_ item: TaskItem) {
