@@ -23,7 +23,7 @@ struct HomeView2: View {
     
     @State private var showAddAlert = false
     @State private var newTaskText = ""
-        
+    
     @State private var stats: [StatItem] = [
         StatItem(emoji: "🍋", points: 1.0),
         StatItem(emoji: "🛁", points: 3.0),
@@ -59,134 +59,160 @@ struct HomeView2: View {
                     
                     Spacer()
                     
-                    HStack {
-                        HStack {
-                            Image("coin")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 24, height: 24)
-                            
-                            Text("426")
-                                .font(Font.custom("Gaegu-Regular", size: 28))
-                                .foregroundStyle(.white)
-                        }
-                        
-                        Spacer()
-                        
-                        Image("white")
-                            .frame(width: 36, height: 36)
-                            .background(.white)
-                            .clipShape(Capsule())
-                    }
-                    .padding(.horizontal, 20)
+                    topBar
                     
                     Spacer()
                     
-                    VStack {
-                        Text("Action steps")
-                            .font(.custom("Gaegu-Regular", size: 24))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.leading, 8)
-                        
-                        VStack(alignment: .leading) {
-                            ForEach($tasks) { $task in
-                                HStack {
-                                    Image(task.isDone ? "tick_done" : "tick_empty")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text(task.text)
-                                        .font(.custom("Gaegu-Regular", size: 24))
-                                        .strikethrough(task.isDone)
-                                        .foregroundStyle(Color.capyDarkBrown)
-                                }
-                                .onTapGesture {
-                                    withAnimation(.spring()) {
-                                        task.isDone.toggle()
-                                    }
-                                    let impact = UIImpactFeedbackGenerator(style: .medium)
-                                    impact.impactOccurred()
-                                }
-                            }
-                            
-                            Text("+++++")
-                                .font(Font.custom("Gaegu-Regular", size: 24))
-                                .foregroundStyle(Color.capyBlue)
-                                .padding(.top, 24)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                            
-                        }
-                        .padding(16)
-                        .background {
-                            ZStack {
-                                Color.white
-                                Image("clouds")
-                                    .resizable()
-                                    .scaledToFill()
-                                    .clipped()
-                                    .opacity(0.4)
-                            }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    }
-                    .padding(.horizontal, 20)
+                    todoPart
                     
                     Spacer()
                     
-                    VStack(spacing: -16) {
-                        ZStack {
-                            Image("speech_bubble")
-                                .resizable()
-                                .scaledToFit()
-                            
-                            Text("How many hours so far? I'm hungry...")
-                                .font(.custom("Gaegu-Regular", size: 24))
-                                .foregroundStyle(Color.capyDarkBrown)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 56)
-                        }
-                        .padding(.horizontal, 20)
-                        
-                        Image("capy_sit")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .padding(.bottom, 10)
-                            .overlay(alignment: .bottom) {
-                                HStack {
-                                    ForEach(stats) { stat in
-                                        HStack {
-                                            Text(stat.emoji)
-                                                .font(Font.system(size: 24, weight: .bold, design: .default))
-                                            Text("\(Int(stat.points))/5")
-                                                .font(.custom("Gaegu-Regular", size: 24))
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .padding(8)
-                                .frame(maxWidth: .infinity)
-                                .background(.white).opacity(0.9)
-                                .clipShape(Capsule())
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 40)
-                            }
-                    }
-                    .ignoresSafeArea()
+                    capyPart
                 }
             }
         }
-//        .overlay(alignment: .bottomLeading) {
-//            BackButton(action: onBack)
-//                .padding(.leading, 18)
-//                .padding(.bottom, 32)
-//        }
-//        .onAppear {
-//            capyText = "Hey \(name), what are your goals?"
-//        }
+    }
+    
+    private var topBar: some View {
+        HStack {
+            HStack {
+                Image("coin")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+                
+                Text("426")
+                    .font(Font.custom("Gaegu-Regular", size: 28))
+                    .foregroundStyle(.white)
+            }
+            
+            Spacer()
+            
+            Image("white")
+                .frame(width: 36, height: 36)
+                .background(.white)
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var todoPart: some View {
+        VStack {
+            Text("Action steps")
+                .font(.custom("Gaegu-Regular", size: 24))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, 8)
+            
+            VStack(alignment: .leading) {
+                ForEach($tasks) { $task in
+                    HStack {
+                        Image(task.isDone ? "tick_done" : "tick_empty")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
+                        
+                        Text(task.text)
+                            .font(.custom("Gaegu-Regular", size: 24))
+                            .strikethrough(task.isDone)
+                            .foregroundStyle(Color.capyDarkBrown)
+                    }
+                    .onTapGesture {
+                        toggleTask($task)
+                    }
+                    .onLongPressGesture {
+                        deleteTask($task.wrappedValue)
+                    }
+                }
+                
+                Button(action: {
+                    newTaskText = ""
+                    showAddAlert = true
+                }) {
+                    Text("+++++")
+                        .font(Font.custom("Gaegu-Regular", size: 24))
+                        .foregroundStyle(Color.capyBlue)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                
+            }
+            .padding(16)
+            .background {
+                ZStack {
+                    Color.white
+                    Image("clouds")
+                        .resizable()
+                        .scaledToFill()
+                        .clipped()
+                        .opacity(0.4)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var capyPart: some View {
+        VStack(spacing: -16) {
+            ZStack {
+                Image("speech_bubble")
+                    .resizable()
+                    .scaledToFit()
+                
+                Text("How many hours so far? I'm hungry...")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 56)
+            }
+            .padding(.horizontal, 20)
+            
+            Image("capy_sit")
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 10)
+                .overlay(alignment: .bottom) {
+                    HStack {
+                        ForEach(stats) { stat in
+                            HStack {
+                                Text(stat.emoji)
+                                    .font(Font.system(size: 24, weight: .bold, design: .default))
+                                Text("\(Int(stat.points))/5")
+                                    .font(.custom("Gaegu-Regular", size: 24))
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(.white).opacity(0.8)
+                    .clipShape(Capsule())
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
+                }
+        }
+        .ignoresSafeArea()
+    }
+    
+    private func toggleTask(_ task: Binding<TaskItem>) {
+        withAnimation(.spring()) {
+            task.wrappedValue.isDone.toggle()
+        }
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
+    }
+    
+    private func deleteTask(_ item: TaskItem) {
+        if let index = tasks.firstIndex(where: {$0.id == item.id }) {
+            _ = withAnimation {
+                tasks.remove(at: index)
+            }
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.warning)
+        }
     }
 }
 
