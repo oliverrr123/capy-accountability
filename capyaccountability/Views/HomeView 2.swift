@@ -8,6 +8,12 @@ struct TaskItem: Identifiable {
     var isDone: Bool
 }
 
+struct StatItem: Identifiable {
+    let id = UUID()
+    var emoji: String
+    var points: Double
+}
+
 struct HomeView2: View {
     @State private var tasks: [TaskItem] = [
         TaskItem(text: "Wake up early", isDone: true),
@@ -15,6 +21,11 @@ struct HomeView2: View {
         TaskItem(text: "Finish MyFriend MVP", isDone: false)
     ]
         
+    @State private var stats: [StatItem] = [
+        StatItem(emoji: "🍋", points: 1.0),
+        StatItem(emoji: "🛁", points: 3.0),
+        StatItem(emoji: "😁", points: 5.0)
+    ]
     
     var body: some View {
         ZStack {
@@ -133,7 +144,26 @@ struct HomeView2: View {
                             .resizable()
                             .scaledToFit()
                             .frame(maxWidth: .infinity)
-                            .padding(.bottom, 0)
+                            .padding(.bottom, 10)
+                            .overlay(alignment: .bottom) {
+                                HStack {
+                                    ForEach(stats) { stat in
+                                        HStack {
+                                            Text(stat.emoji)
+                                                .font(Font.system(size: 24, weight: .bold, design: .default))
+                                            Text("\(Int(stat.points))/5")
+                                                .font(.custom("Gaegu-Regular", size: 24))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                    }
+                                }
+                                .padding(8)
+                                .frame(maxWidth: .infinity)
+                                .background(.white)
+                                .clipShape(Capsule())
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 40)
+                            }
                     }
                     .ignoresSafeArea()
                 }
