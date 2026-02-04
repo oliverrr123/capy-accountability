@@ -7,12 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1A055F7A2F32AEAF007DC0A8 /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */; };
+		DA508BB02F335701000CA24E /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		1A055F472F328582007DC0A8 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
-		1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		1A10A3E02F31309200160E66 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A5203E92F32194D00CE2688 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1A52041B2F32486E00CE2688 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
@@ -25,6 +24,9 @@
 		1ABFC5432F311C08002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DA4B7CBD2F2C094100877845 /* capyaccountability.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = capyaccountability.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA508B892F3356D7000CA24E /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		DA63ABBF2F32B2BA00CA388F /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -153,7 +155,7 @@
 		DA4B7CB42F2C094100877845 = {
 			isa = PBXGroup;
 			children = (
-				1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */,
+				DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */,
 				1ABFC51D2F311A6E002AEF13 /* Resources */,
 				DA4B7CBF2F2C094100877845 /* capyaccountability */,
 				DA4B7CBE2F2C094100877845 /* Products */,
@@ -164,6 +166,20 @@
 			isa = PBXGroup;
 			children = (
 				DA4B7CBD2F2C094100877845 /* capyaccountability.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DA508B8D2F3356D7000CA24E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DA63ABC32F32B2BA00CA388F /* Products */ = {
+			isa = PBXGroup;
+			children = (
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -265,6 +281,10 @@
 					ProjectRef = 1ABE02102F326FE1000DB74B /* capyaccountability.xcodeproj */;
 				},
 				{
+					ProductGroup = DA63ABC32F32B2BA00CA388F /* Products */;
+					ProjectRef = DA63ABBF2F32B2BA00CA388F /* capyaccountability.xcodeproj */;
+				},
+				{
 					ProductGroup = 1ABFC5112F31199C002AEF13 /* Products */;
 					ProjectRef = 1ABFC50E2F31199C002AEF13 /* capyaccountability.xcodeproj */;
 				},
@@ -279,6 +299,10 @@
 				{
 					ProductGroup = DAEE88EB2F31EBB500311BFD /* Products */;
 					ProjectRef = DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */;
+				},
+				{
+					ProductGroup = DA508B8D2F3356D7000CA24E /* Products */;
+					ProjectRef = DA508B892F3356D7000CA24E /* capyaccountability.xcodeproj */;
 				},
 				{
 					ProductGroup = 1A71540C2F31449500E03EF4 /* Products */;
@@ -305,7 +329,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A055F7A2F32AEAF007DC0A8 /* Secrets.xcconfig in Resources */,
+				DA508BB02F335701000CA24E /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,7 +348,6 @@
 /* Begin XCBuildConfiguration section */
 		DA4B7CC62F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -386,7 +409,6 @@
 		};
 		DA4B7CC72F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -440,14 +462,13 @@
 		};
 		DA4B7CC92F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -472,7 +493,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountability;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -491,14 +512,13 @@
 		};
 		DA4B7CCA2F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 1A055F792F32AEAF007DC0A8 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -521,7 +541,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountability;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
