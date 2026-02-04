@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct OnboardingFlowView: View {
+    var onFinish: (String, String) -> Void = { _, _ in }
+
     @State private var step: OnboardingStep = .login
     @State private var name = ""
     @State private var goals = ""
@@ -38,7 +40,7 @@ struct OnboardingFlowView: View {
                 IntroSlidesView(onFinish: { advance(to: .final) })
                     .transition(.opacity)
             case .final:
-                FinalCTAView(onFinish: resetFlow)
+                FinalCTAView(onFinish: finishOnboarding)
                     .transition(.opacity)
             }
         }
@@ -52,12 +54,12 @@ struct OnboardingFlowView: View {
         }
     }
 
-    private func resetFlow() {
-        name = ""
-        goals = ""
-        advance(to: .login)
+    private func finishOnboarding() {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedGoals = goals.trimmingCharacters(in: .whitespacesAndNewlines)
+        onFinish(trimmedName, trimmedGoals)
     }
-    
+
     private func goBack() {
         withAnimation {
             switch step {
