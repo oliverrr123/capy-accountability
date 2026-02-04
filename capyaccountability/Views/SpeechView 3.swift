@@ -16,6 +16,7 @@ struct SpeechView3: View {
     @State private var showBars = false
     
     @State private var capyText: String = ""
+    @State private var messages: [[String: String]] = []
     
     var body: some View {
         ZStack {
@@ -121,10 +122,16 @@ struct SpeechView3: View {
     private func askCapy(text: String) {
         Task {
             do {
-                let answer = try await brain.talkToCapy(userText: text)
+                messages.append([
+                    "role": "user",
+                    "content": text
+                ])
+                
+                let answer = try await brain.talkToCapy(messages: messages)
                 
                 DispatchQueue.main.async {
                     capyText = answer
+                    messages.append(["role": "assistant", "content": capyText])
                 }
             } catch {
                 print("Error talking to Capy: \(error)")
