@@ -88,7 +88,7 @@ class SpeechRecognizer: ObservableObject {
     private func resetSilenceTimer() {
         silenceTimer?.invalidate()
         
-        silenceTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: false) { [weak self] _ in
+        silenceTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { [weak self] _ in
             print("Silence detected")
             self?.stopTranscribing()
         }

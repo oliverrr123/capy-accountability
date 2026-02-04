@@ -145,16 +145,23 @@ struct SpeechView3: View {
                     "content": text
                 ])
                 
-                let answer = try await brain.talkToCapy(messages: messages)
+                let result = try await brain.talkToCapy(messages: messages)
                 
                 DispatchQueue.main.async {
-                    capyText = answer
-                    messages.append(["role": "assistant", "content": capyText])
-                    
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        startListening()
+                    switch result {
+                    case .reply(let answer):
+                        capyText = answer
+                        messages.append(["role": "assistant", "content": capyText])
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            startListening()
+                            isThinking = false
+                        }
+                        
+                    case .finished(let goals):
+                        print("Goals collected")
                         isThinking = false
+                        onSubmit()
                     }
                 }
             } catch {
