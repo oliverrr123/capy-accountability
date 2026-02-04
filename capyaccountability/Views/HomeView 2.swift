@@ -20,6 +20,9 @@ struct HomeView2: View {
         TaskItem(text: "Do at least 10h on Capy", isDone: false),
         TaskItem(text: "Finish MyFriend MVP", isDone: false)
     ]
+    
+    @State private var showAddAlert = false
+    @State private var newTaskText = ""
         
     @State private var stats: [StatItem] = [
         StatItem(emoji: "🍋", points: 1.0),
@@ -87,7 +90,7 @@ struct HomeView2: View {
                             .padding(.leading, 8)
                         
                         VStack(alignment: .leading) {
-                            ForEach(tasks) { task in
+                            ForEach($tasks) { $task in
                                 HStack {
                                     Image(task.isDone ? "tick_done" : "tick_empty")
                                         .resizable()
@@ -98,6 +101,13 @@ struct HomeView2: View {
                                         .font(.custom("Gaegu-Regular", size: 24))
                                         .strikethrough(task.isDone)
                                         .foregroundStyle(Color.capyDarkBrown)
+                                }
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        task.isDone.toggle()
+                                    }
+                                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                                    impact.impactOccurred()
                                 }
                             }
                             
@@ -159,7 +169,7 @@ struct HomeView2: View {
                                 }
                                 .padding(8)
                                 .frame(maxWidth: .infinity)
-                                .background(.white)
+                                .background(.white).opacity(0.9)
                                 .clipShape(Capsule())
                                 .padding(.horizontal, 20)
                                 .padding(.bottom, 40)
