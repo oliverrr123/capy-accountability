@@ -9,11 +9,11 @@ struct SpeechView3: View {
     
     @FocusState private var nameFocused: Bool
     
-    @StateObject private var mic = MicLevelMeter()
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var brain = CapyBrain()
     
     @State private var showBars = false
+    @State private var isThinking = false
     
     @State private var capyText: String = ""
     @State private var messages: [[String: String]] = []
@@ -78,8 +78,10 @@ struct SpeechView3: View {
                         
                         Button(action: micTapped) {
                             Group {
-                                if showBars && mic.isRunning {
-                                    SoundBars(level: mic.level)
+                                if isThinking {
+                                    SpinningLoader()
+                                } else if showBars || speechRecognizer.isRecording {
+                                    SoundBars(level: CGFloat(speechRecognizer.soundLevel))
                                         .foregroundStyle(Color.capyBlue)
                                         .frame(width: 128, height: 128)
                                 } else {
@@ -114,14 +116,30 @@ struct SpeechView3: View {
                 .padding(.leading, 18)
                 .padding(.bottom, 32)
         }
+        .onChange(of: speechRecognizer.isRecording) { oldValue, isRecording in
+                if !isRecording {
+                    if !speechRecognizer.transcript.isEmpty {
+                        askCapy(text: speechRecognizer.transcript)
+                    }
+            }
+        }
         .onAppear {
             capyText = "Hey \(name), what are your goals?"
         }
     }
     
     private func askCapy(text: String) {
+        isThinking = true
+        
         Task {
             do {
+                if messages.isEmpty {
+                    messages.append([
+                        "role": "assistant",
+                        "content": "Hey \(name), what are your goals?"
+                    ])
+                }
+                
                 messages.append([
                     "role": "user",
                     "content": text
@@ -132,13 +150,25 @@ struct SpeechView3: View {
                 DispatchQueue.main.async {
                     capyText = answer
                     messages.append(["role": "assistant", "content": capyText])
+                    
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        startListening()
+                        isThinking = false
+                    }
                 }
             } catch {
                 print("Error talking to Capy: \(error)")
+                isThinking = false
             }
         }
         
         print("Sending to Capy: \(text)")
+    }
+    
+    private func startListening() {
+        speechRecognizer.startTranscribing()
+        showBars = true
     }
     
     private func submit() {
@@ -147,20 +177,13 @@ struct SpeechView3: View {
     }
     
     private func micTapped() {
-        if speechRecognizer.isRecording || mic.isRunning {
-            mic.stop()
+        if speechRecognizer.isRecording {
             speechRecognizer.stopTranscribing()
             showBars = false
-            
-            let finalText = speechRecognizer.transcript
-            if !finalText.isEmpty {
-                askCapy(text: finalText)
-            }
             return
         }
         
         let start = {
-            mic.start()
             speechRecognizer.startTranscribing()
             showBars = true
         }
@@ -196,6 +219,18 @@ struct SpeechView3: View {
             @unknown default:
                 break
             }
+        }
+    }
+}
+
+struct SpinningLoader: View {
+    var body: some View {
+        TimelineView(.animation) { context in
+            Image("mic_load")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 128, height: 128)
+                .rotationEffect(.degrees(context.date.timeIntervalSinceReferenceDate * 360))
         }
     }
 }
