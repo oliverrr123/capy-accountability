@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 final class CapyStore: ObservableObject {
     @Published private(set) var profile: CapyProfile
