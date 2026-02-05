@@ -289,6 +289,10 @@ struct HomeView2: View {
         } else {
             let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.impactOccurred()
+            
+            withAnimation {
+                balance -= 12
+            }
         }
     }
     
