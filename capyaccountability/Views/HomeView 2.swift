@@ -54,6 +54,7 @@ struct HomeView2: View {
     @AppStorage("capy_shop_last_day_key") private var shopLastDayKey = ""
     @AppStorage("capy_shop_purchased_ids") private var purchasedShopItemsCSV = ""
     @AppStorage("capy_last_goal_checkin_ts") private var lastGoalCheckInTimestamp = 0.0
+    @AppStorage("capy_last_wake_day_key") private var lastWakeDayKey = ""
 
     @State private var showAddAlert = false
     @State private var newTaskText = ""
@@ -83,9 +84,11 @@ struct HomeView2: View {
     @State private var capyText = "hi, i'm capy. want to buy me a little care item and then do one tiny goal step?"
     @State private var capyInput = ""
     @State private var capyIsThinking = false
+    @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
 
     private let goalCheckInTimer = Timer.publish(every: 50, on: .main, in: .common).autoconnect()
+    private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private let shopCatalog: [CapyShopItem] = [
         CapyShopItem(id: "citrus_treats", emoji: "🍋", title: "Citrus Treats", description: "A snack pack for your capy. Boosts energy.", cost: 28, statReward: "🍋"),
@@ -130,7 +133,10 @@ struct HomeView2: View {
                     topBar
                     shopCareHint
                     todoPart
-                    capyPart(bottomInset: geometry.safeAreaInsets.bottom)
+                    capyPart(
+                        bottomInset: geometry.safeAreaInsets.bottom,
+                        containerWidth: geometry.size.width
+                    )
                 }
                 .padding(.top, geometry.safeAreaInsets.top + 6)
                 .padding(.bottom, max(geometry.safeAreaInsets.bottom, 12))
@@ -204,6 +210,7 @@ struct HomeView2: View {
         }
         .onAppear {
             refreshDailyShopIfNeeded(force: true)
+            refreshCapySleepState()
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 maybeAskGoalCheckIn()
             }
@@ -211,9 +218,13 @@ struct HomeView2: View {
         .onReceive(goalCheckInTimer) { _ in
             maybeAskGoalCheckIn()
         }
+        .onReceive(capySleepTimer) { _ in
+            refreshCapySleepState()
+        }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active else { return }
             refreshDailyShopIfNeeded()
+            refreshCapySleepState()
             maybeAskGoalCheckIn()
         }
     }
@@ -388,7 +399,7 @@ struct HomeView2: View {
         .padding(.horizontal, 40)
     }
 
-    private func capyPart(bottomInset: CGFloat) -> some View {
+    private func capyPart(bottomInset: CGFloat, containerWidth: CGFloat) -> some View {
         VStack(spacing: -6) {
             ZStack {
                 Image("speech_bubble")
@@ -424,6 +435,7 @@ struct HomeView2: View {
                     .foregroundStyle(Color.capyDarkBrown)
                     .submitLabel(.send)
                     .onSubmit(sendMessageToCapy)
+                    .disabled(isCapySleeping)
 
                 Button(action: sendMessageToCapy) {
                     Image(systemName: "paperplane.fill")
@@ -433,28 +445,23 @@ struct HomeView2: View {
                         .background(Color.capyBlue)
                         .clipShape(Circle())
                 }
-                .disabled(capyIsThinking)
+                .disabled(capyIsThinking || isCapySleeping)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.white.opacity(0.88))
             .clipShape(Capsule())
             .padding(.horizontal, 20)
+            .opacity(isCapySleeping ? 0.7 : 1)
 
-            HStack(spacing: 10) {
-                quickActionButton(title: "goal check-in", icon: "target") {
-                    maybeAskGoalCheckIn(force: true)
-                }
-                capyAIButton
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 4)
-
-            Image("capy_sit")
+            Image(isCapySleeping ? "capy_sleep" : "capy_sit")
                 .resizable()
                 .scaledToFit()
-                .frame(maxWidth: .infinity)
+                .frame(width: containerWidth)
                 .padding(.bottom, 10)
+                .onTapGesture {
+                    wakeCapyIfNeeded()
+                }
                 .overlay(alignment: .bottom) {
                     HStack {
                         ForEach(stats) { stat in
@@ -475,39 +482,6 @@ struct HomeView2: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, bottomInset + 10)
                 }
-        }
-    }
-
-    private func quickActionButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                Text(title)
-                    .font(.custom("Gaegu-Regular", size: 18))
-            }
-            .foregroundStyle(Color.capyDarkBrown)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(.white.opacity(0.88))
-            .clipShape(Capsule())
-        }
-    }
-
-    private var capyAIButton: some View {
-        Button(action: requestAINudge) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles")
-                Text("capyai")
-                    .font(.custom("Gaegu-Regular", size: 18))
-                Text("calm nudge")
-                    .font(.custom("Gaegu-Regular", size: 16))
-                    .foregroundStyle(Color.capyDarkBrown.opacity(0.65))
-            }
-            .foregroundStyle(Color.capyDarkBrown)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(.white.opacity(0.88))
-            .clipShape(Capsule())
         }
     }
 
@@ -725,6 +699,7 @@ struct HomeView2: View {
     }
 
     private func maybeAskGoalCheckIn(force: Bool = false) {
+        guard !isCapySleeping else { return }
         guard !capyIsThinking else { return }
         guard let targetTask = pendingTasks.randomElement() else { return }
 
@@ -751,29 +726,9 @@ struct HomeView2: View {
         lastGoalCheckInTimestamp = now.timeIntervalSince1970
     }
 
-    private func requestAINudge() {
-        guard !capyIsThinking else { return }
-        let focusGoal = pendingTasks.randomElement()?.text ?? "staying consistent today"
-        capyInput = ""
-        capyIsThinking = true
-
-        Task {
-            let reply = await brain.coachReply(
-                userMessage: "Give me one short accountability nudge for \(focusGoal). End with one question.",
-                goals: pendingTasks.map { $0.text },
-                completedCount: viewModel.tasks.filter { $0.isDone }.count,
-                pendingCount: pendingTasks.count
-            )
-            await MainActor.run {
-                capyText = reply
-                capyIsThinking = false
-            }
-        }
-    }
-
     private func sendMessageToCapy() {
         let message = capyInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !message.isEmpty, !capyIsThinking else { return }
+        guard !isCapySleeping, !message.isEmpty, !capyIsThinking else { return }
 
         capyInput = ""
         capyIsThinking = true
@@ -790,6 +745,31 @@ struct HomeView2: View {
                 capyIsThinking = false
             }
         }
+    }
+
+    private func refreshCapySleepState(now: Date = Date()) {
+        let todayKey = shopDayKey(from: now)
+        let hasReachedMidnight = now >= Calendar.current.startOfDay(for: now)
+        let shouldSleep = hasReachedMidnight && lastWakeDayKey != todayKey
+
+        isCapySleeping = shouldSleep
+
+        if shouldSleep {
+            capyText = "zZz... tap capy to wake me up."
+        }
+    }
+
+    private func wakeCapyIfNeeded() {
+        guard isCapySleeping else { return }
+
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            isCapySleeping = false
+        }
+        lastWakeDayKey = shopDayKey(from: Date())
+        capyText = "yawn... i'm awake now. let's do one tiny goal step."
+
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.impactOccurred()
     }
 }
 
