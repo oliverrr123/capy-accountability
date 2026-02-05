@@ -45,6 +45,11 @@ struct HomeView2: View {
     
     @State private var audioPlayer: AVAudioPlayer?
     
+    @State private var taskToEdit: TaskItem?
+    @State private var showActionSheet = false
+    @State private var showEditAlert = false
+    @State private var editTaskText = ""
+    
     var body: some View {
         ZStack {
             Color.capyBlue
@@ -112,6 +117,31 @@ struct HomeView2: View {
             Button("Add", action: addNewTask)
             Button("Cancel", role: .cancel) {}
         }
+        .confirmationDialog("Edit task", isPresented: $showActionSheet) {
+            Button("Edit text") {
+                if let task = taskToEdit {
+                    editTaskText = task.text
+                    showEditAlert = true
+                }
+            }
+            
+            Button("Delete", role: .destructive) {
+                if let task = taskToEdit {
+                    deleteTask(task)
+                }
+            }
+            
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Edit Goal", isPresented: $showEditAlert) {
+            TextField("Goal text...", text: $editTaskText)
+            Button("Save") {
+                if let task = taskToEdit, !editTaskText.isEmpty {
+                    saveTaskEdit(task, newText: editTaskText)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
     
     private var topBar: some View {
@@ -159,17 +189,21 @@ struct HomeView2: View {
                             .strikethrough(task.isDone)
                             .foregroundStyle(Color.capyDarkBrown)
                     }
-//                    .onTapGesture {
-//                        toggleTask($task)
-//                    }
-                    .gesture(
-                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
-                            .onEnded { value in
-                                toggleTask($task, at: value.startLocation)
-                            }
-                    )
+                    .onTapGesture(coordinateSpace: .global) { location in
+                        toggleTask($task, at: location)
+                    }
+//                    .gesture(
+//                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+//                            .onEnded { value in
+//                                toggleTask($task, at: value.startLocation)
+//                            }
+//                    )
                     .onLongPressGesture {
-                        deleteTask($task.wrappedValue)
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        
+                        taskToEdit = task
+                        showActionSheet = true
                     }
                 }
                 
@@ -313,6 +347,12 @@ struct HomeView2: View {
             }
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.warning)
+        }
+    }
+    
+    private func saveTaskEdit(_ item: TaskItem, newText: String) {
+        if let index = tasks.firstIndex(where: { $0.id == item.id }) {
+            tasks[index].text = newText
         }
     }
 }
