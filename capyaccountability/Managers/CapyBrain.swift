@@ -134,10 +134,14 @@ class CapyBrain: ObservableObject {
         let systemMessage = [
             "role": "system",
             "content": """
-            You are Capy, an AI accountability capybara.
-            Keep replies very short (1-3 sentences), practical, and warm.
-            Ask a direct follow-up question often.
-            Refer to one concrete goal when possible.
+            you are capy, a chill capybara friend.
+            always write in lowercase.
+            keep replies short (1-2 sentences).
+            sound casual and warm, like talking to a bro.
+            do not sound like a formal assistant.
+            avoid pressure and avoid hard commands.
+            nudge gently only when useful.
+            reference one concrete goal when possible.
             """
         ]
 
@@ -161,7 +165,7 @@ class CapyBrain: ObservableObject {
         do {
             let response = try await requestChatCompletion(parameters: parameters)
             let text = response.choices.first?.message.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return text.isEmpty ? fallback : text
+            return text.isEmpty ? fallback : text.lowercased()
         } catch {
             print("Coach reply error: \(error)")
             return fallback
@@ -192,19 +196,19 @@ class CapyBrain: ObservableObject {
         let lowercased = userMessage.lowercased()
         if lowercased.contains("done") || lowercased.contains("finished") {
             if let nextGoal = goals.first {
-                return "Huge win. Want to roll straight into \"\(nextGoal)\" next?"
+                return "nice bro, big win. wanna do a tiny step for \"\(nextGoal)\" or chill for a sec?"
             }
-            return "Huge win. Want to lock in another small task right now?"
+            return "nice bro, solid win. wanna do one more tiny thing or take a breather?"
         }
         if lowercased.contains("stuck") || lowercased.contains("hard") {
             let focus = goals.first ?? "your top task"
-            return "Let's shrink it. What's the smallest 10-minute step for \"\(focus)\"?"
+            return "all good bro. let's make it tiny, what's a 10-minute step for \"\(focus)\"?"
         }
         if pendingCount == 0 {
-            return "You cleared everything. Want to add one stretch goal for today?"
+            return "you cleared it all bro, clean work. wanna keep it light for the rest of today?"
         }
         let focus = goals.randomElement() ?? "your next goal"
-        return "Quick check-in: what's one concrete step you can do now for \"\(focus)\"?"
+        return "yo bro, what's one tiny step you could do for \"\(focus)\"?"
     }
 }
 

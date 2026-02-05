@@ -81,13 +81,13 @@ struct HomeView2: View {
     @State private var showShopAlert = false
     @State private var shopAlertMessage = ""
 
-    @State private var capyText = "hi, i'm capy. want to buy me a little care item and then do one tiny goal step?"
+    @State private var capyText = "yo bro, i'm capy. tap capyshop if you wanna grab me care stuff."
     @State private var capyInput = ""
     @State private var capyIsThinking = false
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
 
-    private let goalCheckInTimer = Timer.publish(every: 50, on: .main, in: .common).autoconnect()
+    private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private let shopCatalog: [CapyShopItem] = [
@@ -211,9 +211,6 @@ struct HomeView2: View {
         .onAppear {
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                maybeAskGoalCheckIn()
-            }
         }
         .onReceive(goalCheckInTimer) { _ in
             maybeAskGoalCheckIn()
@@ -225,7 +222,6 @@ struct HomeView2: View {
             guard newPhase == .active else { return }
             refreshDailyShopIfNeeded()
             refreshCapySleepState()
-            maybeAskGoalCheckIn()
         }
     }
 
@@ -268,7 +264,7 @@ struct HomeView2: View {
         HStack(spacing: 8) {
             Image(systemName: "heart.fill")
                 .font(.system(size: 12, weight: .semibold))
-            Text("buy care items for your capy to boost mood, energy, and hygiene")
+            Text("tap capyshop (top right), buy with coins, each item shows its effect")
                 .font(.custom("Gaegu-Regular", size: 16))
         }
         .foregroundStyle(Color.capyDarkBrown.opacity(0.9))
@@ -418,7 +414,7 @@ struct HomeView2: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .tint(Color.capyDarkBrown)
-                            Text("Capy is thinking...")
+                            Text("capy is thinking...")
                                 .font(.custom("Gaegu-Regular", size: 16))
                                 .foregroundStyle(Color.capyDarkBrown.opacity(0.8))
                         }
@@ -516,10 +512,7 @@ struct HomeView2: View {
         if task.wrappedValue.isDone {
             triggerReward(at: location, amount: reward)
             if let emoji = statEmoji { updateStat(emoji: emoji, change: 1) }
-            capyText = "Yuzu power-up. Nice work on \"\(task.wrappedValue.text)\". Want to push one more goal?"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                maybeAskGoalCheckIn()
-            }
+            capyText = "nice work bro, you finished \"\(task.wrappedValue.text)\"."
         } else {
             let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.impactOccurred()
@@ -528,7 +521,7 @@ struct HomeView2: View {
                 balance -= Double(reward)
                 if let emoji = statEmoji { updateStat(emoji: emoji, change: -1) }
             }
-            capyText = "No stress. Let's take another swing at \"\(task.wrappedValue.text)\"."
+            capyText = "all good bro, we can take another shot at \"\(task.wrappedValue.text)\"."
         }
     }
 
@@ -674,13 +667,13 @@ struct HomeView2: View {
 
     private func buyShopItem(_ item: CapyShopItem) {
         if isPurchased(item) {
-            shopAlertMessage = "You already bought \(item.title) today."
+            shopAlertMessage = "you already bought \(item.title.lowercased()) today."
             showShopAlert = true
             return
         }
 
         guard balance >= Double(item.cost) else {
-            shopAlertMessage = "Not enough coins for \(item.title)."
+            shopAlertMessage = "not enough coins for \(item.title.lowercased())."
             showShopAlert = true
             return
         }
@@ -693,8 +686,9 @@ struct HomeView2: View {
             updateStat(emoji: stat, change: 1)
         }
 
-        capyText = "thank you. you got \(item.title.lowercased()) for your capy. want a gentle goal check-in now?"
-        shopAlertMessage = "Purchased \(item.title) for your capy. capyshop refreshes with new care items tomorrow."
+        let effectText = itemEffectText(for: item)
+        capyText = "thanks bro, you got me \(item.title.lowercased()). \(effectText)"
+        shopAlertMessage = "bought \(item.title.lowercased()). \(effectText) capyshop refreshes at midnight."
         showShopAlert = true
     }
 
@@ -705,22 +699,23 @@ struct HomeView2: View {
 
         let now = Date()
         let lastGlobalCheckIn = Date(timeIntervalSince1970: lastGoalCheckInTimestamp)
-        let sessionCooldown: TimeInterval = 90
-        let globalCooldown: TimeInterval = 15 * 60
+        let sessionCooldown: TimeInterval = 45 * 60
+        let globalCooldown: TimeInterval = 3 * 60 * 60
 
         if !force {
             guard now.timeIntervalSince(lastSessionGoalCheckInDate) > sessionCooldown else { return }
             guard now.timeIntervalSince(lastGlobalCheckIn) > globalCooldown else { return }
+            guard Double.random(in: 0...1) < 0.18 else { return }
         }
 
         let prompts = [
-            "Quick goal check-in: how is \"{goal}\" going?",
-            "Are you still on track for \"{goal}\" today?",
-            "Want to take a 10-minute step toward \"{goal}\" right now?",
-            "For \"{goal}\", what would make progress easy this hour?"
+            "yo bro, how's \"{goal}\" feeling right now?",
+            "no pressure bro, got a tiny move for \"{goal}\"?",
+            "if you want, we can do a 10-minute step on \"{goal}\".",
+            "what would make \"{goal}\" easier tonight, bro?"
         ]
 
-        let template = prompts.randomElement() ?? "How are you doing with \"{goal}\"?"
+        let template = prompts.randomElement() ?? "how's \"{goal}\" going, bro?"
         capyText = template.replacingOccurrences(of: "{goal}", with: targetTask.text)
         lastSessionGoalCheckInDate = now
         lastGoalCheckInTimestamp = now.timeIntervalSince1970
@@ -755,7 +750,7 @@ struct HomeView2: View {
         isCapySleeping = shouldSleep
 
         if shouldSleep {
-            capyText = "zZz... tap capy to wake me up."
+            capyText = "zzz... tap me to wake me up bro."
         }
     }
 
@@ -766,10 +761,26 @@ struct HomeView2: View {
             isCapySleeping = false
         }
         lastWakeDayKey = shopDayKey(from: Date())
-        capyText = "yawn... i'm awake now. let's do one tiny goal step."
+        capyText = "yawn... i'm up bro. what's one tiny thing we're doing?"
 
         let generator = UIImpactFeedbackGenerator(style: .soft)
         generator.impactOccurred()
+    }
+
+    private func itemEffectText(for item: CapyShopItem) -> String {
+        guard let stat = item.statReward else {
+            return "it is cosmetic only, no stat boost."
+        }
+        switch stat {
+        case "🍋":
+            return "+1 energy (🍋)."
+        case "🛁":
+            return "+1 hygiene (🛁)."
+        case "😁":
+            return "+1 mood (😁)."
+        default:
+            return "+1 stat (\(stat))."
+        }
     }
 }
 
@@ -801,6 +812,15 @@ private struct CapyShopSheet: View {
             }
             .padding(.horizontal, 20)
 
+            VStack(alignment: .leading, spacing: 3) {
+                Text("how to buy: tap a \"buy\" button.")
+                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
+            }
+            .font(.custom("Gaegu-Regular", size: 16))
+            .foregroundStyle(Color.capyBrown.opacity(0.8))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 10) {
                     ForEach(items) { item in
@@ -815,6 +835,9 @@ private struct CapyShopSheet: View {
                                 Text(item.description)
                                     .font(.custom("Gaegu-Regular", size: 16))
                                     .foregroundStyle(Color.capyBrown.opacity(0.78))
+                                Text(effectText(for: item))
+                                    .font(.custom("Gaegu-Regular", size: 15))
+                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
                             }
 
                             Spacer()
@@ -823,7 +846,7 @@ private struct CapyShopSheet: View {
                             Button {
                                 onBuy(item)
                             } label: {
-                                Text(purchased ? "equipped" : "\(item.cost)")
+                                Text(purchased ? "bought today" : "buy \(item.cost)")
                                     .font(.custom("Gaegu-Regular", size: 18))
                                     .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
                                     .padding(.horizontal, 14)
@@ -847,6 +870,22 @@ private struct CapyShopSheet: View {
                 .padding(.bottom, 14)
         }
         .background(Color.capyBeige.opacity(0.96))
+    }
+
+    private func effectText(for item: CapyShopItem) -> String {
+        guard let stat = item.statReward else {
+            return "effect: cosmetic only (no stat boost)"
+        }
+        switch stat {
+        case "🍋":
+            return "effect: +1 energy (🍋)"
+        case "🛁":
+            return "effect: +1 hygiene (🛁)"
+        case "😁":
+            return "effect: +1 mood (😁)"
+        default:
+            return "effect: +1 stat (\(stat))"
+        }
     }
 }
 
