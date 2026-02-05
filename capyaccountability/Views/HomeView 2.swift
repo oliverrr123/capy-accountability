@@ -1,5 +1,6 @@
 import AuthenticationServices
 import AVFoundation
+import AudioToolbox
 import SwiftUI
 
 struct TaskItem: Identifiable {
@@ -12,6 +13,14 @@ struct StatItem: Identifiable {
     let id = UUID()
     var emoji: String
     var points: Double
+}
+
+struct FlyingCoin: Identifiable {
+    let id = UUID()
+    var startPosition: CGPoint
+    let explodeOffset: CGSize
+    let endPosition: CGPoint = CGPoint(x: 32, y: 90)
+//    var delay: Double
 }
 
 struct HomeView2: View {
@@ -29,6 +38,12 @@ struct HomeView2: View {
         StatItem(emoji: "🛁", points: 3.0),
         StatItem(emoji: "😁", points: 5.0)
     ]
+    
+    @State private var balance = 426.0
+    
+    @State private var flyingCoins: [FlyingCoin] = []
+    
+    @State private var audioPlayer: AVAudioPlayer?
     
     var body: some View {
         ZStack {
@@ -70,7 +85,28 @@ struct HomeView2: View {
                     capyPart
                 }
             }
+            
+            GeometryReader { _ in
+                ForEach(flyingCoins) { coin in
+                    Image("coin")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+//                        .position(coin.startPosition)
+                        .modifier(ExplodingCoinModifier(coin: coin) {
+                            flyingCoins.removeAll(where: { $0.id == coin.id })
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                balance += 1
+                            }
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
+                        })
+                }
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
         }
+//        .coordinateSpace(name: "CapySpace")
         .alert("New Goal", isPresented: $showAddAlert) {
             TextField("Enter goal...", text: $newTaskText)
             Button("Add", action: addNewTask)
@@ -86,9 +122,10 @@ struct HomeView2: View {
                     .scaledToFit()
                     .frame(width: 24, height: 24)
                 
-                Text("426")
+                Text(String(Int(balance)))
                     .font(Font.custom("Gaegu-Regular", size: 28))
                     .foregroundStyle(.white)
+                    .contentTransition(.numericText(value: balance))
             }
             
             Spacer()
@@ -122,9 +159,15 @@ struct HomeView2: View {
                             .strikethrough(task.isDone)
                             .foregroundStyle(Color.capyDarkBrown)
                     }
-                    .onTapGesture {
-                        toggleTask($task)
-                    }
+//                    .onTapGesture {
+//                        toggleTask($task)
+//                    }
+                    .gesture(
+                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                            .onEnded { value in
+                                toggleTask($task, at: value.startLocation)
+                            }
+                    )
                     .onLongPressGesture {
                         deleteTask($task.wrappedValue)
                     }
@@ -202,12 +245,55 @@ struct HomeView2: View {
         .ignoresSafeArea()
     }
     
-    private func toggleTask(_ task: Binding<TaskItem>) {
+    private func toggleTask(_ task: Binding<TaskItem>, at location: CGPoint) {
         withAnimation(.spring()) {
             task.wrappedValue.isDone.toggle()
         }
-        let impact = UIImpactFeedbackGenerator(style: .medium)
-        impact.impactOccurred()
+        
+        if task.wrappedValue.isDone {
+            triggerReward(at: location)
+        } else {
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+        }
+    }
+    
+    private func triggerReward(at point: CGPoint) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        
+//        AudioServicesPlaySystemSound(1407)
+        playSound(name: "coins", fileExtension: "mp3")
+        
+        spawnCoins(from: point)
+    }
+    
+    private func playSound(name: String, fileExtension: String) {
+        if let url = Bundle.main.url(forResource: name, withExtension: fileExtension) {
+            do {
+                audioPlayer = try AVAudioPlayer(contentsOf: url)
+                audioPlayer?.play()
+            } catch {
+                print("Error playing sound: \(error.localizedDescription)")
+            }
+        } else {
+            print("Could not find file: \(name).\(fileExtension)")
+        }
+    }
+    
+    private func spawnCoins(from startPoint: CGPoint) {
+        for _ in 0..<12 {
+            let randomX = Double.random(in: -10...10)
+            let randomY = Double.random(in: -10...10)
+            let offset = CGSize(width: randomX, height: randomY)
+            
+            let coin = FlyingCoin(
+                startPosition: startPoint,
+                explodeOffset: offset
+//                delay: Double(i) * 0.05
+            )
+            flyingCoins.append(coin)
+        }
     }
     
     private func addNewTask() {
@@ -228,6 +314,48 @@ struct HomeView2: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.warning)
         }
+    }
+}
+
+struct ExplodingCoinModifier: ViewModifier {
+    let coin: FlyingCoin
+    var onComplete: () -> Void
+    
+    @State private var isVisible = false
+    @State private var isExploded = false
+    @State private var isMagnetized = false
+    
+    func body(content: Content) -> some View {
+        content
+            .position(
+                isMagnetized ? coin.endPosition :
+                    (isExploded ? CGPoint(x: coin.startPosition.x + coin.explodeOffset.width,
+                                          y: coin.startPosition.y + coin.explodeOffset.height) :
+                    coin.startPosition)
+            )
+            .opacity(isVisible ? 1 : 0)
+//            .scaleEffect(isVisible ? 1 : 0.1)
+            .onAppear {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                    isVisible = true
+                    isExploded = true
+                }
+                
+                let magnetDelay = Double.random(in: 0.05...0.4)
+                let magnetDuration = 0.6
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + magnetDelay) {
+                    withAnimation(.easeIn(duration: 0.6)) {
+                        isMagnetized = true
+                    }
+                }
+                
+                let totalDuration = 0.3 + magnetDelay + magnetDuration
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) {
+                    onComplete()
+                }
+            }
     }
 }
 
