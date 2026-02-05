@@ -7,6 +7,10 @@ struct TaskItem: Identifiable {
     let id = UUID()
     var text: String
     var isDone: Bool
+    var timeframe: Timeframe
+    
+    var coinReward: Int
+    var statReward: String?
 }
 
 struct StatItem: Identifiable {
@@ -19,15 +23,25 @@ struct FlyingCoin: Identifiable {
     let id = UUID()
     var startPosition: CGPoint
     let explodeOffset: CGSize
-    let endPosition: CGPoint = CGPoint(x: 32, y: 90)
+    let endPosition: CGPoint = CGPoint(x: 32, y: 84)
 //    var delay: Double
+}
+
+enum Timeframe: String, CaseIterable {
+    case day = "Today"
+    case week = "This week"
+    case month = "This month"
+    case year = "This year"
+    case decade = "This decade"
+    case allTime = "All time"
 }
 
 struct HomeView2: View {
     @State private var tasks: [TaskItem] = [
-        TaskItem(text: "Wake up early", isDone: true),
-        TaskItem(text: "Do at least 10h on Capy", isDone: false),
-        TaskItem(text: "Finish MyFriend MVP", isDone: false)
+        TaskItem(text: "Wake up early", isDone: true, timeframe: .day, coinReward: 10, statReward: "😁"),
+        TaskItem(text: "Don't procrastinate", isDone: false, timeframe: .day, coinReward: 10, statReward: nil),
+        TaskItem(text: "Do at least 10h on Capy", isDone: false, timeframe: .week, coinReward: 40, statReward: "🍋"),
+        TaskItem(text: "Finish MyFriend MVP", isDone: false, timeframe: .month, coinReward: 80, statReward: "😁")
     ]
     
     @State private var showAddAlert = false
@@ -36,7 +50,7 @@ struct HomeView2: View {
     @State private var stats: [StatItem] = [
         StatItem(emoji: "🍋", points: 1.0),
         StatItem(emoji: "🛁", points: 3.0),
-        StatItem(emoji: "😁", points: 5.0)
+        StatItem(emoji: "😁", points: 2.0)
     ]
     
     @State private var balance = 426.0
@@ -49,6 +63,8 @@ struct HomeView2: View {
     @State private var showActionSheet = false
     @State private var showEditAlert = false
     @State private var editTaskText = ""
+    
+    @State private var selectedTimeframe: Timeframe = .day
     
     var body: some View {
         ZStack {
@@ -77,6 +93,7 @@ struct HomeView2: View {
                 
                 VStack {
                     
+                    Spacer()
                     Spacer()
                     
                     topBar
@@ -170,40 +187,69 @@ struct HomeView2: View {
     
     private var todoPart: some View {
         VStack {
-            Text("Action steps")
-                .font(.custom("Gaegu-Regular", size: 24))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 8)
+            timeframeSwitcher
+                .zIndex(1)
             
+//            Text("Action steps")
+//                .font(.custom("Gaegu-Regular", size: 24))
+//                .foregroundStyle(.white)
+//                .frame(maxWidth: .infinity, alignment: .leading)
+//                .padding(.leading, 8)
+            
+                
             VStack(alignment: .leading) {
-                ForEach($tasks) { $task in
-                    HStack {
-                        Image(task.isDone ? "tick_done" : "tick_empty")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 24, height: 24)
-                        
-                        Text(task.text)
-                            .font(.custom("Gaegu-Regular", size: 24))
-                            .strikethrough(task.isDone)
-                            .foregroundStyle(Color.capyDarkBrown)
+                let filteredTasks = tasks.filter { $0.timeframe == selectedTimeframe }
+                
+                if filteredTasks.isEmpty {
+                    VStack {
+                        Spacer()
+                        Text("No goals for \(selectedTimeframe.rawValue.lowercased()) yet!")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyDarkBrown.opacity(0.5))
+                            .padding(.vertical, 20)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                        Spacer()
                     }
-                    .onTapGesture(coordinateSpace: .global) { location in
-                        toggleTask($task, at: location)
-                    }
-//                    .gesture(
-//                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
-//                            .onEnded { value in
-//                                toggleTask($task, at: value.startLocation)
-//                            }
-//                    )
-                    .onLongPressGesture {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                        
-                        taskToEdit = task
-                        showActionSheet = true
+                    .frame(maxWidth: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(filteredTasks) { task in
+                                if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+                                    HStack {
+                                        Image(tasks[index].isDone ? "tick_done" : "tick_empty")
+                                            .resizable()
+                                            .scaledToFit()
+                                            .frame(width: 24, height: 24)
+                                        
+                                        Text(tasks[index].text)
+                                            .font(.custom("Gaegu-Regular", size: 24))
+                                            .strikethrough(task.isDone)
+                                            .foregroundStyle(Color.capyDarkBrown)
+                                            .multilineTextAlignment(.leading)
+//                                            .layoutPriority(1)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .onTapGesture(coordinateSpace: .global) { location in
+                                        toggleTask($tasks[index], at: location)
+                                    }
+            //                    .gesture(
+            //                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
+            //                            .onEnded { value in
+            //                                toggleTask($task, at: value.startLocation)
+            //                            }
+            //                    )
+                                    .onLongPressGesture {
+                                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                                        generator.impactOccurred()
+                                        
+                                        taskToEdit = task
+                                        showActionSheet = true
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -220,6 +266,7 @@ struct HomeView2: View {
                 
             }
             .padding(16)
+            .frame(height: UIScreen.main.bounds.height * 0.28)
             .background {
                 ZStack {
                     Color.white
@@ -231,8 +278,46 @@ struct HomeView2: View {
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .gesture(
+                DragGesture()
+                    .onEnded { value in
+                        if value.translation.width < -50 {
+                            changeTimeframe(direction: 1)
+                        } else if value.translation.width > 50 {
+                            changeTimeframe(direction: -1)
+                        }
+                    }
+            )
         }
         .padding(.horizontal, 20)
+    }
+    
+    private var timeframeSwitcher: some View {
+        HStack {
+            Button(action: { changeTimeframe(direction: -1) }) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            
+            Spacer()
+            
+            Text(selectedTimeframe.rawValue)
+                .font(.custom("Gaegu-Regular", size: 24))
+                .foregroundStyle(.white)
+            
+            Spacer()
+            
+            Button(action: { changeTimeframe(direction: 1) }) {
+                Image(systemName: "chevron.right")
+                    .font(Font.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+            }
+        }
+        .padding(.horizontal, 40)
     }
     
     private var capyPart: some View {
@@ -264,13 +349,14 @@ struct HomeView2: View {
                                     .font(Font.system(size: 24, weight: .bold, design: .default))
                                 Text("\(Int(stat.points))/5")
                                     .font(.custom("Gaegu-Regular", size: 24))
+                                    .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
                             }
                             .frame(maxWidth: .infinity)
                         }
                     }
                     .padding(8)
                     .frame(maxWidth: .infinity)
-                    .background(.white).opacity(0.8)
+                    .background(.white.opacity(0.8))
                     .clipShape(Capsule())
                     .padding(.horizontal, 20)
                     .padding(.bottom, 40)
@@ -279,31 +365,57 @@ struct HomeView2: View {
         .ignoresSafeArea()
     }
     
+    private func changeTimeframe(direction: Int) {
+        let allCases = Timeframe.allCases
+        if let currentIndex = allCases.firstIndex(of: selectedTimeframe) {
+            let nextIndex = (currentIndex + direction + allCases.count) % allCases.count
+            withAnimation {
+                selectedTimeframe = allCases[nextIndex]
+            }
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+        }
+    }
+    
     private func toggleTask(_ task: Binding<TaskItem>, at location: CGPoint) {
         withAnimation(.spring()) {
             task.wrappedValue.isDone.toggle()
         }
         
+        let reward = task.wrappedValue.coinReward
+        let statEmoji = task.wrappedValue.statReward
+        
         if task.wrappedValue.isDone {
-            triggerReward(at: location)
+            triggerReward(at: location, amount: reward)
+            if let emoji = statEmoji { updateStat(emoji: emoji, change: 1) }
         } else {
             let impact = UIImpactFeedbackGenerator(style: .medium)
             impact.impactOccurred()
             
             withAnimation {
-                balance -= 12
+                balance -= Double(reward)
+                if let emoji = statEmoji { updateStat(emoji: emoji, change: -1) }
             }
         }
     }
     
-    private func triggerReward(at point: CGPoint) {
+    private func updateStat(emoji: String, change: Double) {
+        if let index = stats.firstIndex(where: { $0.emoji == emoji }) {
+            withAnimation {
+                let newPoints = stats[index].points + change
+                stats[index].points = min(max(newPoints, 0), 5)
+            }
+        }
+    }
+    
+    private func triggerReward(at point: CGPoint, amount: Int) {
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
         
 //        AudioServicesPlaySystemSound(1407)
         playSound(name: "coins", fileExtension: "mp3")
         
-        spawnCoins(from: point)
+        spawnCoins(from: point, count: amount)
     }
     
     private func playSound(name: String, fileExtension: String) {
@@ -319,8 +431,9 @@ struct HomeView2: View {
         }
     }
     
-    private func spawnCoins(from startPoint: CGPoint) {
-        for _ in 0..<12 {
+    private func spawnCoins(from startPoint: CGPoint, count: Int) {
+        let visualCoins = min(count, 100)
+        for _ in 0..<visualCoins {
             let randomX = Double.random(in: -10...10)
             let randomY = Double.random(in: -10...10)
             let offset = CGSize(width: randomX, height: randomY)
@@ -337,7 +450,13 @@ struct HomeView2: View {
     private func addNewTask() {
         guard !newTaskText.isEmpty else { return }
         
-        let newItem = TaskItem(text: newTaskText, isDone: false)
+        let newItem = TaskItem(
+            text: newTaskText,
+            isDone: false,
+            timeframe: selectedTimeframe,
+            coinReward: 12,
+            statReward: nil
+        )
         
         withAnimation {
             tasks.append(newItem)
