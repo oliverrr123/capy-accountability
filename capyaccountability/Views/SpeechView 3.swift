@@ -7,6 +7,8 @@ struct SpeechView3: View {
     var onBack: () -> Void
     var onSubmit: () -> Void
     
+    @ObservedObject var viewModel: TaskViewModel
+    
     @FocusState private var nameFocused: Bool
     
     @StateObject private var speechRecognizer = SpeechRecognizer()
@@ -63,7 +65,9 @@ struct SpeechView3: View {
                             
                             Text(capyText)
                                 .font(.custom("Gaegu-Regular", size: 18))
-                                .padding(.bottom, 18)
+                                .foregroundStyle(Color.capyDarkBrown)
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                                .padding(.top, 18)
                                 .padding(.horizontal, 40)
                         }
                         
@@ -160,6 +164,7 @@ struct SpeechView3: View {
                         
                     case .finished(let goals):
                         print("Goals collected")
+                        viewModel.generateTasks(from: goals)
                         isThinking = false
                         onSubmit()
                     }

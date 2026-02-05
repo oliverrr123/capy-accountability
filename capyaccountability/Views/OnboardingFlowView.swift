@@ -5,7 +5,8 @@ struct OnboardingFlowView: View {
 
     @State private var step: OnboardingStep = .login
     @State private var name = ""
-    @State private var goals = ""
+    
+    @ObservedObject var taskViewModel: TaskViewModel
 
     var body: some View {
         ZStack {
@@ -21,26 +22,15 @@ struct OnboardingFlowView: View {
                 }
                 .transition(.opacity)
             case .mic:
-                SpeechView3(name: $name, onBack: goBack) {
-                    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmed.isEmpty else { return }
-                    advance(to: .goals)
-                }
+                SpeechView3(
+                    name: $name,
+                    onBack: goBack,
+                    onSubmit: { advance(to: .home) },
+                    viewModel: taskViewModel
+                )
                 .transition(.opacity)
-            case .goals:
-                GoalsInputView(goals: $goals, onContinue: { advance(to: .thinking) })
-                    .transition(.opacity)
-            case .thinking:
-                ThinkingView(onComplete: { advance(to: .itinerary) })
-                    .transition(.opacity)
-            case .itinerary:
-                ItineraryView(onContinue: { advance(to: .intro) })
-                    .transition(.opacity)
-            case .intro:
-                IntroSlidesView(onFinish: { advance(to: .final) })
-                    .transition(.opacity)
-            case .final:
-                FinalCTAView(onFinish: finishOnboarding)
+            case .home:
+                HomeView2(viewModel: taskViewModel)
                     .transition(.opacity)
             }
         }
@@ -54,30 +44,19 @@ struct OnboardingFlowView: View {
         }
     }
 
-    private func finishOnboarding() {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedGoals = goals.trimmingCharacters(in: .whitespacesAndNewlines)
-        onFinish(trimmedName, trimmedGoals)
-    }
-
     private func goBack() {
         withAnimation {
             switch step {
-            case .login: break
             case .name: step = .login
             case .mic: step = .name
-            case .goals: step = .mic
-            case .thinking: step = .goals
-            case .itinerary: step = .thinking
-            case .intro: step = .itinerary
-            case .final: step = .intro
+            default: break
            }
         }
     }
 }
 
 #Preview {
-    OnboardingFlowView()
+    OnboardingFlowView(taskViewModel: TaskViewModel())
 }
 
 struct BackButton: View {
@@ -91,3 +70,4 @@ struct BackButton: View {
         }
     }
 }
+

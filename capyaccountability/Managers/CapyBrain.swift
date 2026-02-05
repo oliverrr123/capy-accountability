@@ -44,7 +44,7 @@ class CapyBrain: ObservableObject {
         guard !apiKey.isEmpty else { return .reply("No API Key >.<") }
         
         let url = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 120)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -79,32 +79,32 @@ class CapyBrain: ObservableObject {
                         "properties": [
                             "long_term": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of life/long-term goals"
                             ],
                             "decade": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of 10-year goals"
                             ],
                             "yearly": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of 1-year goals"
                             ],
                             "monthly": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of monthly goals"
                             ],
                             "weekly": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of weekly goals"
                             ],
                             "daily": [
                                 "type": "array",
-                                "item": ["type", "string"],
+                                "items": ["type": "string"],
                                 "description": "List of daily habits"
                             ]
                         ],
@@ -131,6 +131,11 @@ class CapyBrain: ObservableObject {
         if let toolCalls = choice?.message.tool_calls, let firstTool = toolCalls.first {
             if firstTool.function.name == "submit_goals" {
                 let argsString = firstTool.function.arguments
+                
+                print("---")
+                print(argsString)
+                print("---")
+                
                 if let argsData = argsString.data(using: .utf8) {
                     let goals = try JSONDecoder().decode(UserGoals.self, from: argsData)
                     return .finished(goals)

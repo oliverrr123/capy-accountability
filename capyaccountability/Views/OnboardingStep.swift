@@ -4,9 +4,10 @@ enum OnboardingStep {
     case login
     case name
     case mic
-    case goals
-    case thinking
-    case itinerary
-    case intro
-    case final
+    case home
+//    case goals
+//    case thinking
+//    case itinerary
+//    case intro
+//    case final
 }

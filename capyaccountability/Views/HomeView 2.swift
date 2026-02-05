@@ -23,12 +23,12 @@ struct FlyingCoin: Identifiable {
     let id = UUID()
     var startPosition: CGPoint
     let explodeOffset: CGSize
-    let endPosition: CGPoint = CGPoint(x: 32, y: 84)
+    let endPosition: CGPoint = CGPoint(x: 32, y: 87)
 //    var delay: Double
 }
 
 enum Timeframe: String, CaseIterable {
-    case day = "Today"
+    case daily = "Daily"
     case week = "This week"
     case month = "This month"
     case year = "This year"
@@ -37,12 +37,14 @@ enum Timeframe: String, CaseIterable {
 }
 
 struct HomeView2: View {
-    @State private var tasks: [TaskItem] = [
-        TaskItem(text: "Wake up early", isDone: true, timeframe: .day, coinReward: 10, statReward: "😁"),
-        TaskItem(text: "Don't procrastinate", isDone: false, timeframe: .day, coinReward: 10, statReward: nil),
-        TaskItem(text: "Do at least 10h on Capy", isDone: false, timeframe: .week, coinReward: 40, statReward: "🍋"),
-        TaskItem(text: "Finish MyFriend MVP", isDone: false, timeframe: .month, coinReward: 80, statReward: "😁")
-    ]
+    @ObservedObject var viewModel: TaskViewModel
+    
+//    @State private var tasks: [TaskItem] = [
+//        TaskItem(text: "Wake up early", isDone: true, timeframe: .daily, coinReward: 10, statReward: "😁"),
+//        TaskItem(text: "Don't procrastinate", isDone: false, timeframe: .daily, coinReward: 10, statReward: nil),
+//        TaskItem(text: "Do at least 10h on Capy", isDone: false, timeframe: .week, coinReward: 40, statReward: "🍋"),
+//        TaskItem(text: "Finish MyFriend MVP", isDone: false, timeframe: .month, coinReward: 80, statReward: "😁")
+//    ]
     
     @State private var showAddAlert = false
     @State private var newTaskText = ""
@@ -64,7 +66,7 @@ struct HomeView2: View {
     @State private var showEditAlert = false
     @State private var editTaskText = ""
     
-    @State private var selectedTimeframe: Timeframe = .day
+    @State private var selectedTimeframe: Timeframe = .daily
     
     var body: some View {
         ZStack {
@@ -159,6 +161,22 @@ struct HomeView2: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+//        .overlay(alignment: .center) {
+//            if viewModel.tasks.isEmpty {
+//                VStack {
+//                    Text("DEBUG 0 tasks found")
+//                }
+//                .padding()
+//                .background(.red)
+//                .foregroundStyle(.white)
+//            } else {
+//                Text("DEBUG \(viewModel.tasks.count) tasks found")
+//                    .padding()
+//                    .background(.green)
+//                    .foregroundStyle(.white)
+//                    .offset(y: -200)
+//            }
+//        }
     }
     
     private var topBar: some View {
@@ -186,7 +204,7 @@ struct HomeView2: View {
     }
     
     private var todoPart: some View {
-        VStack {
+        VStack(spacing: 6) {
             timeframeSwitcher
                 .zIndex(1)
             
@@ -195,10 +213,9 @@ struct HomeView2: View {
 //                .foregroundStyle(.white)
 //                .frame(maxWidth: .infinity, alignment: .leading)
 //                .padding(.leading, 8)
-            
-                
+        
             VStack(alignment: .leading) {
-                let filteredTasks = tasks.filter { $0.timeframe == selectedTimeframe }
+                let filteredTasks = viewModel.tasks.filter { $0.timeframe == selectedTimeframe }
                 
                 if filteredTasks.isEmpty {
                     VStack {
@@ -215,14 +232,14 @@ struct HomeView2: View {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(filteredTasks) { task in
-                                if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+                                if let index = viewModel.tasks.firstIndex(where: { $0.id == task.id }) {
                                     HStack {
-                                        Image(tasks[index].isDone ? "tick_done" : "tick_empty")
+                                        Image(viewModel.tasks[index].isDone ? "tick_done" : "tick_empty")
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: 24, height: 24)
                                         
-                                        Text(tasks[index].text)
+                                        Text(viewModel.tasks[index].text)
                                             .font(.custom("Gaegu-Regular", size: 24))
                                             .strikethrough(task.isDone)
                                             .foregroundStyle(Color.capyDarkBrown)
@@ -232,7 +249,7 @@ struct HomeView2: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                     .onTapGesture(coordinateSpace: .global) { location in
-                                        toggleTask($tasks[index], at: location)
+                                        toggleTask($viewModel.tasks[index], at: location)
                                     }
             //                    .gesture(
             //                        DragGesture(minimumDistance: 0, coordinateSpace: .global)
@@ -459,14 +476,14 @@ struct HomeView2: View {
         )
         
         withAnimation {
-            tasks.append(newItem)
+            viewModel.tasks.append(newItem)
         }
     }
     
     private func deleteTask(_ item: TaskItem) {
-        if let index = tasks.firstIndex(where: {$0.id == item.id }) {
+        if let index = viewModel.tasks.firstIndex(where: {$0.id == item.id }) {
             _ = withAnimation {
-                tasks.remove(at: index)
+                viewModel.tasks.remove(at: index)
             }
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.warning)
@@ -474,8 +491,8 @@ struct HomeView2: View {
     }
     
     private func saveTaskEdit(_ item: TaskItem, newText: String) {
-        if let index = tasks.firstIndex(where: { $0.id == item.id }) {
-            tasks[index].text = newText
+        if let index = viewModel.tasks.firstIndex(where: { $0.id == item.id }) {
+            viewModel.tasks[index].text = newText
         }
     }
 }
