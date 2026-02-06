@@ -4,15 +4,15 @@ import AudioToolbox
 import Combine
 import SwiftUI
 
-struct TaskItem: Identifiable {
-    let id = UUID()
-    var text: String
-    var isDone: Bool
-    var timeframe: Timeframe
-
-    var coinReward: Int
-    var statReward: String?
-}
+//struct TaskItem: Identifiable {
+//    let id = UUID()
+//    var text: String
+//    var isDone: Bool
+//    var timeframe: Timeframe
+//
+//    var coinReward: Int
+//    var statReward: String?
+//}
 
 struct StatItem: Identifiable {
     let id = UUID()
@@ -36,17 +36,18 @@ struct CapyShopItem: Identifiable {
     let statReward: String?
 }
 
-enum Timeframe: String, CaseIterable {
-    case daily = "Daily"
-    case week = "This week"
-    case month = "This month"
-    case year = "This year"
-    case decade = "This decade"
-    case allTime = "All time"
-}
+//enum Timeframe: String, CaseIterable {
+//    case daily = "Daily"
+//    case week = "This week"
+//    case month = "This month"
+//    case year = "This year"
+//    case decade = "This decade"
+//    case allTime = "All time"
+//}
 
 struct HomeView2: View {
-    @ObservedObject var viewModel: TaskViewModel
+//    @ObservedObject var viewModel: TaskViewModel
+    @ObservedObject var store: CapyStore
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var brain = CapyBrain()
@@ -65,15 +66,17 @@ struct HomeView2: View {
         StatItem(emoji: "😁", points: 2.0)
     ]
 
-    @State private var balance = 426.0
+//    @State private var balance = 426.0
+    
+    @State private var balanceDisplay: Double = 0.0
     @State private var flyingCoins: [FlyingCoin] = []
     @State private var audioPlayer: AVAudioPlayer?
 
-    @State private var taskToEdit: TaskItem?
+    @State private var taskToEdit: CapyTask?
     @State private var showActionSheet = false
     @State private var showEditAlert = false
     @State private var editTaskText = ""
-    @State private var selectedTimeframe: Timeframe = .daily
+    @State private var selectedFrequency: TaskFrequency = .daily
 
     @State private var showShopSheet = false
     @State private var shopItems: [CapyShopItem] = []
@@ -153,7 +156,7 @@ struct HomeView2: View {
                         .modifier(ExplodingCoinModifier(coin: coin) {
                             flyingCoins.removeAll(where: { $0.id == coin.id })
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                balance += 1
+                                balanceDisplay += 1
                             }
                             let impact = UIImpactFeedbackGenerator(style: .light)
                             impact.impactOccurred()
@@ -171,7 +174,7 @@ struct HomeView2: View {
         .confirmationDialog("Edit task", isPresented: $showActionSheet) {
             Button("Edit text") {
                 if let task = taskToEdit {
-                    editTaskText = task.text
+                    editTaskText = task.title
                     showEditAlert = true
                 }
             }
@@ -188,7 +191,9 @@ struct HomeView2: View {
             TextField("Goal text...", text: $editTaskText)
             Button("Save") {
                 if let task = taskToEdit, !editTaskText.isEmpty {
-                    saveTaskEdit(task, newText: editTaskText)
+//                    saveTaskEdit(task, newText: editTaskText)
+                    store.deleteTask(task)
+                    store.addTask(title: editTaskText, frequency: selectedFrequency)
                 }
             }
             Button("Cancel", role: .cancel) {}
@@ -201,7 +206,7 @@ struct HomeView2: View {
         .sheet(isPresented: $showShopSheet) {
             CapyShopSheet(
                 dayLabel: shopDayLabel(from: currentShopDayKey),
-                balance: Int(balance),
+                balance: store.stats.coins,
                 items: shopItems,
                 isPurchased: { isPurchased($0) },
                 onBuy: { buyShopItem($0) }
@@ -212,6 +217,11 @@ struct HomeView2: View {
         .onAppear {
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
+        }
+        .onChange(of: store.stats.coins) { _, newValue in
+            if abs(balanceDisplay - Double(newValue)) > 0.1 {
+                withAnimation { balanceDisplay = Double(newValue) }
+            }
         }
         .onReceive(goalCheckInTimer) { _ in
             maybeAskGoalCheckIn()
@@ -234,10 +244,10 @@ struct HomeView2: View {
                     .scaledToFit()
                     .frame(width: 24, height: 24)
 
-                Text(String(Int(balance)))
+                Text(String(Int(balanceDisplay)))
                     .font(Font.custom("Gaegu-Regular", size: 28))
                     .foregroundStyle(.white)
-                    .contentTransition(.numericText(value: balance))
+                    .contentTransition(.numericText(value: balanceDisplay))
             }
 
             Spacer()
@@ -282,12 +292,12 @@ struct HomeView2: View {
                 .zIndex(1)
 
             VStack(alignment: .leading) {
-                let filteredTasks = viewModel.tasks.filter { $0.timeframe == selectedTimeframe }
+                let filteredTasks = store.tasks.filter { $0.frequency == selectedFrequency }
 
                 if filteredTasks.isEmpty {
                     VStack {
                         Spacer()
-                        Text("No goals for \(selectedTimeframe.rawValue.lowercased()) yet!")
+                        Text("No goals for \(frequencyLabel(selectedFrequency)) yet!")
                             .font(.custom("Gaegu-Regular", size: 20))
                             .foregroundStyle(Color.capyDarkBrown.opacity(0.5))
                             .padding(.vertical, 20)
@@ -299,14 +309,13 @@ struct HomeView2: View {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 4) {
                             ForEach(filteredTasks) { task in
-                                if let index = viewModel.tasks.firstIndex(where: { $0.id == task.id }) {
                                     HStack {
-                                        Image(viewModel.tasks[index].isDone ? "tick_done" : "tick_empty")
+                                        Image(task.isDone ? "tick_done" : "tick_empty")
                                             .resizable()
                                             .scaledToFit()
                                             .frame(width: 24, height: 24)
 
-                                        Text(viewModel.tasks[index].text)
+                                        Text(task.title)
                                             .font(.custom("Gaegu-Regular", size: 24))
                                             .strikethrough(task.isDone)
                                             .foregroundStyle(Color.capyDarkBrown)
@@ -315,7 +324,7 @@ struct HomeView2: View {
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                     .onTapGesture(coordinateSpace: .global) { location in
-                                        toggleTask($viewModel.tasks[index], at: location)
+                                        toggleTask(task, at: location)
                                     }
                                     .onLongPressGesture {
                                         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -324,7 +333,6 @@ struct HomeView2: View {
                                         taskToEdit = task
                                         showActionSheet = true
                                     }
-                                }
                             }
                         }
                     }
@@ -358,9 +366,9 @@ struct HomeView2: View {
                 DragGesture()
                     .onEnded { value in
                         if value.translation.width < -50 {
-                            changeTimeframe(direction: 1)
+                            changeFrequency(1)
                         } else if value.translation.width > 50 {
-                            changeTimeframe(direction: -1)
+                            changeFrequency(-1)
                         }
                     }
             )
@@ -370,7 +378,7 @@ struct HomeView2: View {
 
     private var timeframeSwitcher: some View {
         HStack {
-            Button(action: { changeTimeframe(direction: -1) }) {
+            Button(action: { changeFrequency(-1) }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
@@ -380,13 +388,13 @@ struct HomeView2: View {
 
             Spacer()
 
-            Text(selectedTimeframe.rawValue)
+            Text(selectedFrequency.rawValue)
                 .font(.custom("Gaegu-Regular", size: 24))
                 .foregroundStyle(.white)
 
             Spacer()
 
-            Button(action: { changeTimeframe(direction: 1) }) {
+            Button(action: { changeFrequency(1) }) {
                 Image(systemName: "chevron.right")
                     .font(Font.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
@@ -487,43 +495,57 @@ struct HomeView2: View {
         Set(purchasedShopItemsCSV.split(separator: ",").map(String.init))
     }
 
-    private var pendingTasks: [TaskItem] {
-        viewModel.tasks.filter { !$0.isDone }
+    private var pendingTasks: [CapyTask] {
+        store.tasks.filter { !$0.isDone }
     }
 
-    private func changeTimeframe(direction: Int) {
-        let allCases = Timeframe.allCases
-        if let currentIndex = allCases.firstIndex(of: selectedTimeframe) {
+    private func changeFrequency(_ direction: Int) {
+        let allCases = TaskFrequency.allCases
+        if let currentIndex = allCases.firstIndex(of: selectedFrequency) {
             let nextIndex = (currentIndex + direction + allCases.count) % allCases.count
             withAnimation {
-                selectedTimeframe = allCases[nextIndex]
+                selectedFrequency = allCases[nextIndex]
             }
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
         }
     }
-
-    private func toggleTask(_ task: Binding<TaskItem>, at location: CGPoint) {
-        withAnimation(.spring()) {
-            task.wrappedValue.isDone.toggle()
+    
+    private func frequencyLabel(_ f: TaskFrequency) -> String {
+        switch f {
+        case .daily: return "Daily"
+        case .weekly: return "This week"
+        case .monthly: return "This month"
+        case .yearly: return "This year"
+        case .decade: return "This decade"
+        case .longTerm: return "Long term"
         }
+    }
 
-        let reward = task.wrappedValue.coinReward
-        let statEmoji = task.wrappedValue.statReward
+    private func toggleTask(_ task: CapyTask, at location: CGPoint) {
+        store.toggleTask(task)
+        
+//        withAnimation(.spring()) {
+//            task.wrappedValue.isDone.toggle()
+//        }
 
-        if task.wrappedValue.isDone {
-            triggerReward(at: location, amount: reward)
-            if let emoji = statEmoji { updateStat(emoji: emoji, change: 1) }
-            capyText = "nice work bro, you finished \"\(task.wrappedValue.text)\"."
-        } else {
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
+        let rewardAmount = task.coinReward
+        let rewardStat = task.statReward
 
-            withAnimation {
-                balance -= Double(reward)
-                if let emoji = statEmoji { updateStat(emoji: emoji, change: -1) }
+        if let updated = store.tasks.first(where: {$0.id == task.id}) {
+            if updated.isDone {
+                triggerReward(at: location, amount: rewardAmount)
+                if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
+                capyText = "nice work bro, you finished \"\(task.title)\"."
+            } else {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                withAnimation {
+                    balanceDisplay -= Double(rewardAmount)
+                    if let stat = rewardStat { updateStat(emoji: stat, change: -1) }
+                }
+                capyText = "all good bro, we can take another shot at \"\(task.title)\"."
             }
-            capyText = "all good bro, we can take another shot at \"\(task.wrappedValue.text)\"."
         }
     }
 
@@ -575,33 +597,22 @@ struct HomeView2: View {
     private func addNewTask() {
         guard !newTaskText.isEmpty else { return }
 
-        let newItem = TaskItem(
-            text: newTaskText,
-            isDone: false,
-            timeframe: selectedTimeframe,
-            coinReward: 12,
-            statReward: nil
-        )
-
         withAnimation {
-            viewModel.tasks.append(newItem)
+            store.addTask(title: newTaskText, frequency: selectedFrequency)
         }
     }
 
-    private func deleteTask(_ item: TaskItem) {
-        if let index = viewModel.tasks.firstIndex(where: { $0.id == item.id }) {
-            _ = withAnimation {
-                viewModel.tasks.remove(at: index)
-            }
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.warning)
+    private func deleteTask(_ task: CapyTask) {
+        withAnimation {
+            store.deleteTask(task)
         }
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.warning)
     }
 
-    private func saveTaskEdit(_ item: TaskItem, newText: String) {
-        if let index = viewModel.tasks.firstIndex(where: { $0.id == item.id }) {
-            viewModel.tasks[index].text = newText
-        }
+    private func saveTaskEdit(_ task: CapyTask, newText: String) {
+        store.deleteTask(task)
+        store.addTask(title: newText, frequency: selectedFrequency)
     }
 
     private func refreshDailyShopIfNeeded(force: Bool = false) {
@@ -673,25 +684,24 @@ struct HomeView2: View {
             showShopAlert = true
             return
         }
-
-        guard balance >= Double(item.cost) else {
+        
+        if store.spendCoins(item.cost) {
+            markPurchased(item.id)
+            if let stat = item.statReward {
+                updateStat(emoji: stat, change: 1)
+            }
+            
+            let effectText = itemEffectText(for: item)
+            capyText = "thanks bro, you got me \(item.title.lowercased()). \(effectText)"
+            shopAlertMessage = "bought \(item.title.lowercased()). \(effectText) capyshop refreshes at midnight."
+            showShopAlert = true
+        } else {
             shopAlertMessage = "not enough coins for \(item.title.lowercased())."
             showShopAlert = true
-            return
         }
-
-        withAnimation {
-            balance -= Double(item.cost)
-        }
-        markPurchased(item.id)
-        if let stat = item.statReward {
-            updateStat(emoji: stat, change: 1)
-        }
-
-        let effectText = itemEffectText(for: item)
-        capyText = "thanks bro, you got me \(item.title.lowercased()). \(effectText)"
-        shopAlertMessage = "bought \(item.title.lowercased()). \(effectText) capyshop refreshes at midnight."
-        showShopAlert = true
+//        withAnimation {
+//            balance -= Double(item.cost)
+//        }
     }
 
     private func maybeAskGoalCheckIn(force: Bool = false) {
@@ -718,7 +728,7 @@ struct HomeView2: View {
         ]
 
         let template = prompts.randomElement() ?? "how's \"{goal}\" going, bro?"
-        capyText = template.replacingOccurrences(of: "{goal}", with: targetTask.text)
+        capyText = template.replacingOccurrences(of: "{goal}", with: targetTask.title)
         lastSessionGoalCheckInDate = now
         lastGoalCheckInTimestamp = now.timeIntervalSince1970
     }
@@ -733,8 +743,8 @@ struct HomeView2: View {
         Task {
             let reply = await brain.coachReply(
                 userMessage: message,
-                goals: pendingTasks.map { $0.text },
-                completedCount: viewModel.tasks.filter { $0.isDone }.count,
+                goals: pendingTasks.map { $0.title },
+                completedCount: store.tasks.filter { $0.isDone }.count,
                 pendingCount: pendingTasks.count
             )
             await MainActor.run {
@@ -756,7 +766,7 @@ struct HomeView2: View {
         guard !capyIsThinking else { return }
         refreshDailyShopIfNeeded()
 
-        let completed = viewModel.tasks.filter { $0.isDone }.count
+        let completed = store.tasks.filter { $0.isDone }.count
         let pending = pendingTasks.count
         let context = capyContextForFeeling()
 
@@ -764,7 +774,7 @@ struct HomeView2: View {
         Task {
             let reply = await brain.coachReply(
                 userMessage: "i tapped you. tell me how you're feeling with this context. mention time, coins, progress, and one shop item.",
-                goals: pendingTasks.map { $0.text },
+                goals: pendingTasks.map { $0.title },
                 completedCount: completed,
                 pendingCount: pending,
                 extraContext: context
@@ -783,18 +793,18 @@ struct HomeView2: View {
         formatter.timeStyle = .short
         let timeText = formatter.string(from: now)
 
-        let completedTasks = viewModel.tasks.filter { $0.isDone }
-        let remainingTasks = viewModel.tasks.filter { !$0.isDone }
-        let topGoals = viewModel.tasks.filter {
-            $0.timeframe == .allTime || $0.timeframe == .decade || $0.timeframe == .year
+        let completedTasks = store.tasks.filter { $0.isDone }
+        let remainingTasks = store.tasks.filter { !$0.isDone }
+        let topGoals = store.tasks.filter {
+            $0.frequency == .longTerm || $0.frequency == .decade || $0.frequency == .yearly
         }
 
-        let endGoalsText = (topGoals.isEmpty ? viewModel.tasks : topGoals)
+        let endGoalsText = (topGoals.isEmpty ? store.tasks : topGoals)
             .prefix(4)
-            .map(\.text)
+            .map(\.title)
             .joined(separator: ", ")
-        let doneText = completedTasks.prefix(3).map(\.text).joined(separator: ", ")
-        let leftText = remainingTasks.prefix(3).map(\.text).joined(separator: ", ")
+        let doneText = completedTasks.prefix(3).map(\.title).joined(separator: ", ")
+        let leftText = remainingTasks.prefix(3).map(\.title).joined(separator: ", ")
 
         let capyStats = stats
             .map { "\(statName(for: $0.emoji)) \(Int($0.points))/5" }
@@ -809,7 +819,7 @@ struct HomeView2: View {
         return """
         time: \(timeText).
         capy state: \(isCapySleeping ? "sleepy" : "awake").
-        coins: \(Int(balance)).
+        coins: \(Int(balanceDisplay)).
         capy stats: \(capyStats).
         user end goals: \(endGoalsText.isEmpty ? "none yet" : endGoalsText).
         done (\(completedTasks.count)): \(doneText.isEmpty ? "none" : doneText).
@@ -1020,5 +1030,6 @@ struct ExplodingCoinModifier: ViewModifier {
 }
 
 #Preview {
-    InitialView()
+//    InitialView()
+    HomeView2(store: CapyStore())
 }

@@ -7,7 +7,8 @@ struct SpeechView3: View {
     var onBack: () -> Void
     var onSubmit: () -> Void
     
-    @ObservedObject var viewModel: TaskViewModel
+//    @ObservedObject var viewModel: TaskViewModel
+    @ObservedObject var store: CapyStore
     
     @FocusState private var nameFocused: Bool
     
@@ -164,7 +165,8 @@ struct SpeechView3: View {
                         
                     case .finished(let goals):
                         print("Goals collected")
-                        viewModel.generateTasks(from: goals)
+//                        viewModel.generateTasks(from: goals)
+                        store.generateTasks(from: goals)
                         isThinking = false
                         onSubmit()
                     }

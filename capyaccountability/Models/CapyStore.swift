@@ -65,9 +65,30 @@ final class CapyStore: ObservableObject {
     func addTask(title: String, frequency: TaskFrequency = .daily) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        tasks.append(CapyTask(title: trimmed, frequency: frequency))
+        
+        let (coins, stat) = calculateRewards(for: frequency)
+        
+        let newTask = CapyTask(
+            title: trimmed,
+            frequency: frequency,
+            coinReward: coins,
+            statReward: stat
+        )
+        
+        tasks.append(newTask)
         updateMood()
         save()
+    }
+    
+    private func calculateRewards(for freq: TaskFrequency) -> (Int, String) {
+        switch freq {
+        case .daily: return (10, "😁")
+        case .weekly: return (30, "🍋")
+        case .monthly: return (50, "🛁")
+        case .yearly: return (200, "😁")
+        case .decade: return (500, "🍋")
+        case .longTerm: return (1000, "🛁")
+        }
     }
 
     func deleteTask(_ task: CapyTask) {
@@ -193,17 +214,43 @@ final class CapyStore: ObservableObject {
     }
 }
 
+//extension CapyStore {
+//    static var preview: CapyStore {
+//        let store = CapyStore(loadFromDisk: false)
+//        store.updateProfile(name: "Yazide", goalsText: "ship capy app, run 5k, read 12 books")
+//        store.updateGoals(nil)
+//        store.setTasks([
+//            CapyTask(title: "Wake up early", frequency: .daily, isDone: true),
+//            CapyTask(title: "Finish Capy MVP", frequency: .weekly, isDone: false),
+//            CapyTask(title: "Run 3km", frequency: .daily, isDone: false)
+//        ])
+//        store.stats = CapyStats(coins: 420, streak: 3, mood: "focused")
+//        return store
+//    }
+//}
+
 extension CapyStore {
-    static var preview: CapyStore {
-        let store = CapyStore(loadFromDisk: false)
-        store.updateProfile(name: "Yazide", goalsText: "ship capy app, run 5k, read 12 books")
-        store.updateGoals(nil)
-        store.setTasks([
-            CapyTask(title: "Wake up early", frequency: .daily, isDone: true),
-            CapyTask(title: "Finish Capy MVP", frequency: .weekly, isDone: false),
-            CapyTask(title: "Run 3km", frequency: .daily, isDone: false)
-        ])
-        store.stats = CapyStats(coins: 420, streak: 3, mood: "focused")
-        return store
+    func generateTasks(from aiGoals: UserGoals) {
+        self.updateGoals(aiGoals)
+        
+        var newTasks: [CapyTask] = []
+        
+        func add(_ title: String, _ freq: TaskFrequency) {
+            let (coins, stat) = self.calculateRewards(for: freq)
+            
+            newTasks.append(CapyTask(title: title, frequency: freq, coinReward: coins, statReward: stat))
+        }
+        
+        for goal in aiGoals.daily { add(goal, .daily) }
+        for goal in aiGoals.weekly { add(goal, .weekly) }
+        for goal in aiGoals.monthly { add(goal, .monthly) }
+        for goal in aiGoals.yearly { add(goal, .yearly) }
+        for goal in aiGoals.decade { add(goal, .decade) }
+        for goal in aiGoals.longTerm { add(goal, .longTerm) }
+        
+        DispatchQueue.main.async {
+            self.setTasks(newTasks)
+            print("CapyStore Saved \(newTasks.count) tasks")
+        }
     }
 }

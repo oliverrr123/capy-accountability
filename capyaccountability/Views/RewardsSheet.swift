@@ -108,5 +108,5 @@ struct RewardsSheet: View {
 
 #Preview {
     RewardsSheet()
-        .environmentObject(CapyStore.preview)
+        .environmentObject(CapyStore())
 }

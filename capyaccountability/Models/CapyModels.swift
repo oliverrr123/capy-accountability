@@ -30,14 +30,28 @@ struct CapyTask: Identifiable, Codable, Equatable {
     var isDone: Bool
     var createdAt: Date
     var completedAt: Date?
+    
+    var coinReward: Int
+    var statReward: String?
 
-    init(id: UUID = UUID(), title: String, frequency: TaskFrequency = .daily, isDone: Bool = false, createdAt: Date = Date(), completedAt: Date? = nil) {
+    init(
+        id: UUID = UUID(),
+        title: String,
+        frequency: TaskFrequency = .daily,
+        isDone: Bool = false,
+        createdAt: Date = Date(),
+        completedAt: Date? = nil,
+        coinReward: Int = 10,
+        statReward: String? = nil
+    ) {
         self.id = id
         self.title = title
         self.frequency = frequency
         self.isDone = isDone
         self.createdAt = createdAt
         self.completedAt = completedAt
+        self.coinReward = coinReward
+        self.statReward = statReward
     }
 }
 

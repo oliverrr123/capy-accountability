@@ -6,7 +6,8 @@ struct OnboardingFlowView: View {
     @State private var step: OnboardingStep = .login
     @State private var name = ""
     
-    @ObservedObject var taskViewModel: TaskViewModel
+//    @ObservedObject var taskViewModel: TaskViewModel
+    @ObservedObject var store: CapyStore
 
     var body: some View {
         ZStack {
@@ -25,12 +26,16 @@ struct OnboardingFlowView: View {
                 SpeechView3(
                     name: $name,
                     onBack: goBack,
-                    onSubmit: { advance(to: .home) },
-                    viewModel: taskViewModel
+                    onSubmit: {
+                        onFinish(name, "")
+                        advance(to: .home)
+                    },
+                    store: store
+//                    viewModel: taskViewModel
                 )
                 .transition(.opacity)
             case .home:
-                HomeView2(viewModel: taskViewModel)
+                HomeView2(store: store)
                     .transition(.opacity)
             }
         }
@@ -56,7 +61,7 @@ struct OnboardingFlowView: View {
 }
 
 #Preview {
-    OnboardingFlowView(taskViewModel: TaskViewModel())
+    OnboardingFlowView(store: CapyStore())
 }
 
 struct BackButton: View {
