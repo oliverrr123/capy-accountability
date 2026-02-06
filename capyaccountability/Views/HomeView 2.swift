@@ -25,6 +25,8 @@ struct FlyingCoin: Identifiable {
     var startPosition: CGPoint
     let explodeOffset: CGSize
     let endPosition: CGPoint = CGPoint(x: 32, y: 87)
+    
+    let value: Int
 }
 
 struct CapyShopItem: Identifiable {
@@ -34,6 +36,23 @@ struct CapyShopItem: Identifiable {
     let description: String
     let cost: Int
     let statReward: String?
+}
+
+extension CapyShopItem {
+    static let catalog: [CapyShopItem] = [
+        CapyShopItem(id: "citrus_treats", emoji: "🍋", title: "Citrus Treats", description: "A snack pack for your capy. Boosts energy.", cost: 28, statReward: "🍋"),
+        CapyShopItem(id: "bubble_bath", emoji: "🛁", title: "Bubble Bath", description: "A warm cleanup for your capy after a long day.", cost: 34, statReward: "🛁"),
+        CapyShopItem(id: "soft_blanket", emoji: "🧺", title: "Soft Blanket", description: "Comfy rest setup that keeps your capy relaxed.", cost: 30, statReward: "😁"),
+        CapyShopItem(id: "watermelon_bowl", emoji: "🍉", title: "Watermelon Bowl", description: "Fresh fruit serving for your capy’s mood.", cost: 32, statReward: "😁"),
+        CapyShopItem(id: "river_toy", emoji: "🦆", title: "River Toy", description: "A playful floatie toy for capy fun time.", cost: 26, statReward: "😁"),
+        CapyShopItem(id: "leaf_salad", emoji: "🥬", title: "Leaf Salad", description: "Healthy greens to keep your capy nourished.", cost: 22, statReward: "🍋"),
+        CapyShopItem(id: "sun_hat", emoji: "👒", title: "Sun Hat", description: "Cute outdoor hat so your capy stays comfy outside.", cost: 36, statReward: nil),
+        CapyShopItem(id: "rain_boots", emoji: "🥾", title: "Rain Boots", description: "For splashy walks with your capy.", cost: 24, statReward: nil),
+        CapyShopItem(id: "reed_mat", emoji: "🧶", title: "Reed Mat", description: "A calm corner mat for your capy to chill.", cost: 31, statReward: "🛁"),
+        CapyShopItem(id: "pond_pass", emoji: "🎟️", title: "Pond Pass", description: "A little day pass for capy water play.", cost: 42, statReward: "😁"),
+        CapyShopItem(id: "grooming_kit", emoji: "🪮", title: "Grooming Kit", description: "Brush and care tools for your capy.", cost: 40, statReward: "🛁"),
+        CapyShopItem(id: "cozy_lantern", emoji: "🏮", title: "Cozy Lantern", description: "Night-time ambience for your capy’s space.", cost: 38, statReward: nil)
+    ]
 }
 
 //enum Timeframe: String, CaseIterable {
@@ -71,6 +90,8 @@ struct HomeView2: View {
     @State private var balanceDisplay: Double = 0.0
     @State private var flyingCoins: [FlyingCoin] = []
     @State private var audioPlayer: AVAudioPlayer?
+    
+    @State private var isCollectingCoins = false
 
     @State private var taskToEdit: CapyTask?
     @State private var showActionSheet = false
@@ -92,21 +113,6 @@ struct HomeView2: View {
 
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
-
-    private let shopCatalog: [CapyShopItem] = [
-        CapyShopItem(id: "citrus_treats", emoji: "🍋", title: "Citrus Treats", description: "A snack pack for your capy. Boosts energy.", cost: 28, statReward: "🍋"),
-        CapyShopItem(id: "bubble_bath", emoji: "🛁", title: "Bubble Bath", description: "A warm cleanup for your capy after a long day.", cost: 34, statReward: "🛁"),
-        CapyShopItem(id: "soft_blanket", emoji: "🧺", title: "Soft Blanket", description: "Comfy rest setup that keeps your capy relaxed.", cost: 30, statReward: "😁"),
-        CapyShopItem(id: "watermelon_bowl", emoji: "🍉", title: "Watermelon Bowl", description: "Fresh fruit serving for your capy’s mood.", cost: 32, statReward: "😁"),
-        CapyShopItem(id: "river_toy", emoji: "🦆", title: "River Toy", description: "A playful floatie toy for capy fun time.", cost: 26, statReward: "😁"),
-        CapyShopItem(id: "leaf_salad", emoji: "🥬", title: "Leaf Salad", description: "Healthy greens to keep your capy nourished.", cost: 22, statReward: "🍋"),
-        CapyShopItem(id: "sun_hat", emoji: "👒", title: "Sun Hat", description: "Cute outdoor hat so your capy stays comfy outside.", cost: 36, statReward: nil),
-        CapyShopItem(id: "rain_boots", emoji: "🥾", title: "Rain Boots", description: "For splashy walks with your capy.", cost: 24, statReward: nil),
-        CapyShopItem(id: "reed_mat", emoji: "🧶", title: "Reed Mat", description: "A calm corner mat for your capy to chill.", cost: 31, statReward: "🛁"),
-        CapyShopItem(id: "pond_pass", emoji: "🎟️", title: "Pond Pass", description: "A little day pass for capy water play.", cost: 42, statReward: "😁"),
-        CapyShopItem(id: "grooming_kit", emoji: "🪮", title: "Grooming Kit", description: "Brush and care tools for your capy.", cost: 40, statReward: "🛁"),
-        CapyShopItem(id: "cozy_lantern", emoji: "🏮", title: "Cozy Lantern", description: "Night-time ambience for your capy’s space.", cost: 38, statReward: nil)
-    ]
 
     var body: some View {
         ZStack {
@@ -133,14 +139,12 @@ struct HomeView2: View {
 
             GeometryReader { geometry in
                 VStack(spacing: 10) {
+                    Spacer()
                     topBar
-                    shopCareHint
+//                    shopCareHint
                     todoPart
-                    Spacer(minLength: 0)
-                    capyPart(
-                        bottomInset: geometry.safeAreaInsets.bottom,
-                        containerWidth: geometry.size.width
-                    )
+                    Spacer()
+                    capyPart
                 }
                 .padding(.top, geometry.safeAreaInsets.top + 6)
                 .padding(.bottom, max(geometry.safeAreaInsets.bottom, 12))
@@ -155,9 +159,13 @@ struct HomeView2: View {
                         .frame(width: 24, height: 24)
                         .modifier(ExplodingCoinModifier(coin: coin) {
                             flyingCoins.removeAll(where: { $0.id == coin.id })
+//                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+//                                balanceDisplay += 1
+//                            }
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                balanceDisplay += 1
+                                balanceDisplay += Double(coin.value)
                             }
+                            
                             let impact = UIImpactFeedbackGenerator(style: .light)
                             impact.impactOccurred()
                         })
@@ -215,12 +223,18 @@ struct HomeView2: View {
             .presentationDragIndicator(.visible)
         }
         .onAppear {
+            balanceDisplay = Double(store.stats.coins)
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
         }
         .onChange(of: store.stats.coins) { _, newValue in
-            if abs(balanceDisplay - Double(newValue)) > 0.1 {
-                withAnimation { balanceDisplay = Double(newValue) }
+//            if abs(balanceDisplay - Double(newValue)) > 0.1 {
+//                withAnimation { balanceDisplay = Double(newValue) }
+//            }
+            if !isCollectingCoins {
+                withAnimation {
+                    balanceDisplay = Double(newValue)
+                }
             }
         }
         .onReceive(goalCheckInTimer) { _ in
@@ -271,20 +285,20 @@ struct HomeView2: View {
         .padding(.horizontal, 20)
     }
 
-    private var shopCareHint: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "heart.fill")
-                .font(.system(size: 12, weight: .semibold))
-            Text("tap capyshop (top right), buy with coins, each item shows its effect")
-                .font(.custom("Gaegu-Regular", size: 16))
-        }
-        .foregroundStyle(Color.capyDarkBrown.opacity(0.9))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.88))
-        .clipShape(Capsule())
-        .padding(.horizontal, 20)
-    }
+//    private var shopCareHint: some View {
+//        HStack(spacing: 8) {
+//            Image(systemName: "heart.fill")
+//                .font(.system(size: 12, weight: .semibold))
+//            Text("tap capyshop (top right), buy with coins, each item shows its effect")
+//                .font(.custom("Gaegu-Regular", size: 16))
+//        }
+//        .foregroundStyle(Color.capyDarkBrown.opacity(0.9))
+//        .padding(.horizontal, 14)
+//        .padding(.vertical, 8)
+//        .background(.white.opacity(0.88))
+//        .clipShape(Capsule())
+//        .padding(.horizontal, 20)
+//    }
 
     private var todoPart: some View {
         VStack(spacing: 6) {
@@ -404,7 +418,7 @@ struct HomeView2: View {
         .padding(.horizontal, 40)
     }
 
-    private func capyPart(bottomInset: CGFloat, containerWidth: CGFloat) -> some View {
+    private var capyPart: some View {
         VStack(spacing: -6) {
             ZStack {
                 Image("speech_bubble")
@@ -434,36 +448,36 @@ struct HomeView2: View {
             }
             .padding(.horizontal, 20)
 
-            HStack(spacing: 10) {
-                TextField("reply to capy...", text: $capyInput)
-                    .font(.custom("Gaegu-Regular", size: 20))
-                    .foregroundStyle(Color.capyDarkBrown)
-                    .submitLabel(.send)
-                    .onSubmit(sendMessageToCapy)
-                    .disabled(isCapySleeping)
-
-                Button(action: sendMessageToCapy) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(Color.capyBlue)
-                        .clipShape(Circle())
-                }
-                .disabled(capyIsThinking || isCapySleeping)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(.white.opacity(0.88))
-            .clipShape(Capsule())
-            .padding(.horizontal, 20)
-            .opacity(isCapySleeping ? 0.7 : 1)
+//            HStack(spacing: 10) {
+//                TextField("reply to capy...", text: $capyInput)
+//                    .font(.custom("Gaegu-Regular", size: 20))
+//                    .foregroundStyle(Color.capyDarkBrown)
+//                    .submitLabel(.send)
+//                    .onSubmit(sendMessageToCapy)
+//                    .disabled(isCapySleeping)
+//
+//                Button(action: sendMessageToCapy) {
+//                    Image(systemName: "paperplane.fill")
+//                        .font(.system(size: 16, weight: .semibold))
+//                        .foregroundStyle(.white)
+//                        .frame(width: 34, height: 34)
+//                        .background(Color.capyBlue)
+//                        .clipShape(Circle())
+//                }
+//                .disabled(capyIsThinking || isCapySleeping)
+//            }
+//            .padding(.horizontal, 16)
+//            .padding(.vertical, 10)
+//            .background(.white.opacity(0.88))
+//            .clipShape(Capsule())
+//            .padding(.horizontal, 20)
+//            .opacity(isCapySleeping ? 0.7 : 1)
 
             Image(isCapySleeping ? "capy_sleep" : "capy_sit")
                 .resizable()
                 .scaledToFit()
-                .frame(width: containerWidth)
-                .padding(.bottom, 10)
+                .frame(maxWidth: .infinity)
+//                .padding(.bottom, 10)
                 .onTapGesture {
                     handleCapyTap()
                 }
@@ -485,7 +499,7 @@ struct HomeView2: View {
                     .background(.white.opacity(0.8))
                     .clipShape(Capsule())
                     .padding(.horizontal, 20)
-                    .padding(.bottom, bottomInset + 10)
+                    .padding(.bottom, 40)
                 }
         }
         .frame(maxWidth: .infinity, alignment: .bottom)
@@ -523,29 +537,35 @@ struct HomeView2: View {
     }
 
     private func toggleTask(_ task: CapyTask, at location: CGPoint) {
-        store.toggleTask(task)
+        let willBeDone = !task.isDone
         
-//        withAnimation(.spring()) {
-//            task.wrappedValue.isDone.toggle()
-//        }
-
-        let rewardAmount = task.coinReward
-        let rewardStat = task.statReward
-
-        if let updated = store.tasks.first(where: {$0.id == task.id}) {
-            if updated.isDone {
-                triggerReward(at: location, amount: rewardAmount)
-                if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
-                capyText = "nice work bro, you finished \"\(task.title)\"."
-            } else {
-                let impact = UIImpactFeedbackGenerator(style: .medium)
-                impact.impactOccurred()
+        if willBeDone {
+            isCollectingCoins = true
+            
+            store.toggleTask(task)
+            
+            let rewardAmount = task.coinReward
+            let rewardStat = task.statReward
+            
+            triggerReward(at: location, amount: rewardAmount)
+            if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
+            capyText = "nice work bro, you finished \"\(task.title)\"."
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                isCollectingCoins = false
                 withAnimation {
-                    balanceDisplay -= Double(rewardAmount)
-                    if let stat = rewardStat { updateStat(emoji: stat, change: -1) }
+                    balanceDisplay = Double(store.stats.coins)
                 }
-                capyText = "all good bro, we can take another shot at \"\(task.title)\"."
             }
+        } else {
+            store.toggleTask(task)
+            
+            let rewardStat = task.statReward
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            
+            if let stat = rewardStat { updateStat(emoji: stat, change: -1) }
+            capyText = "all good bro, we can take another shot at \"\(task.title)\"."
         }
     }
 
@@ -581,14 +601,22 @@ struct HomeView2: View {
 
     private func spawnCoins(from startPoint: CGPoint, count: Int) {
         let visualCoins = min(count, 100)
+        
+        let baseValue = count / visualCoins
+        var remainder = count % visualCoins
+        
         for _ in 0..<visualCoins {
             let randomX = Double.random(in: -10...10)
             let randomY = Double.random(in: -10...10)
             let offset = CGSize(width: randomX, height: randomY)
+            
+            let currentValue = baseValue + (remainder > 0 ? 1 : 0)
+            if remainder > 0 { remainder -= 1 }
 
             let coin = FlyingCoin(
                 startPosition: startPoint,
-                explodeOffset: offset
+                explodeOffset: offset,
+                value: currentValue
             )
             flyingCoins.append(coin)
         }
@@ -631,7 +659,7 @@ struct HomeView2: View {
     }
 
     private func dailyShopItems(for dayKey: String) -> [CapyShopItem] {
-        let ranked = shopCatalog.sorted {
+        let ranked = CapyShopItem.catalog.sorted {
             stableHash("\(dayKey)|\($0.id)") < stableHash("\(dayKey)|\($1.id)")
         }
         return Array(ranked.prefix(5))
@@ -995,15 +1023,23 @@ struct ExplodingCoinModifier: ViewModifier {
     @State private var isVisible = false
     @State private var isExploded = false
     @State private var isMagnetized = false
+    
+    var currentPosition: CGPoint {
+        if isMagnetized {
+            return coin.endPosition
+        } else if isExploded {
+            return CGPoint(
+                x: coin.startPosition.x + coin.explodeOffset.width,
+                y: coin.startPosition.y + coin.explodeOffset.height
+            )
+        } else {
+            return coin.startPosition
+        }
+    }
 
     func body(content: Content) -> some View {
         content
-            .position(
-                isMagnetized ? coin.endPosition :
-                    (isExploded ? CGPoint(x: coin.startPosition.x + coin.explodeOffset.width,
-                                          y: coin.startPosition.y + coin.explodeOffset.height) :
-                        coin.startPosition)
-            )
+            .position(currentPosition)
             .opacity(isVisible ? 1 : 0)
             .onAppear {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {

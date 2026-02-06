@@ -99,16 +99,15 @@ final class CapyStore: ObservableObject {
 
     func toggleTask(_ task: CapyTask) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
-        let wasDone = tasks[index].isDone
         tasks[index].isDone.toggle()
         if tasks[index].isDone {
             tasks[index].completedAt = Date()
-            if !wasDone {
-                applyCompletionRewards(for: tasks[index])
-                recordDailyCompletionIfNeeded()
-            }
+            stats.coins += tasks[index].coinReward
+            recordDailyCompletionIfNeeded()
         } else {
             tasks[index].completedAt = nil
+            stats.coins -= tasks[index].coinReward
+//            if stats.coins Ok, but now there is the issue that when I add it, it instantly adds 10 for some reason, but then, after only the coins flow in, it adds the actual coins. < 0 { stats.coins = 0 }
         }
         updateMood()
         save()
