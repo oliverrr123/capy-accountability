@@ -133,6 +133,7 @@ struct HomeView2: View {
                     topBar
                     shopCareHint
                     todoPart
+                    Spacer(minLength: 0)
                     capyPart(
                         bottomInset: geometry.safeAreaInsets.bottom,
                         containerWidth: geometry.size.width
@@ -456,7 +457,7 @@ struct HomeView2: View {
                 .frame(width: containerWidth)
                 .padding(.bottom, 10)
                 .onTapGesture {
-                    wakeCapyIfNeeded()
+                    handleCapyTap()
                 }
                 .overlay(alignment: .bottom) {
                     HStack {
@@ -479,6 +480,7 @@ struct HomeView2: View {
                     .padding(.bottom, bottomInset + 10)
                 }
         }
+        .frame(maxWidth: .infinity, alignment: .bottom)
     }
 
     private var purchasedItemIDs: Set<String> {
@@ -739,6 +741,93 @@ struct HomeView2: View {
                 capyText = reply
                 capyIsThinking = false
             }
+        }
+    }
+
+    private func handleCapyTap() {
+        if isCapySleeping {
+            wakeCapyIfNeeded()
+            return
+        }
+        requestCapyFeelingUpdate()
+    }
+
+    private func requestCapyFeelingUpdate() {
+        guard !capyIsThinking else { return }
+        refreshDailyShopIfNeeded()
+
+        let completed = viewModel.tasks.filter { $0.isDone }.count
+        let pending = pendingTasks.count
+        let context = capyContextForFeeling()
+
+        capyIsThinking = true
+        Task {
+            let reply = await brain.coachReply(
+                userMessage: "i tapped you. tell me how you're feeling with this context. mention time, coins, progress, and one shop item.",
+                goals: pendingTasks.map { $0.text },
+                completedCount: completed,
+                pendingCount: pending,
+                extraContext: context
+            )
+            await MainActor.run {
+                capyText = reply
+                capyIsThinking = false
+            }
+        }
+    }
+
+    private func capyContextForFeeling(now: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        let timeText = formatter.string(from: now)
+
+        let completedTasks = viewModel.tasks.filter { $0.isDone }
+        let remainingTasks = viewModel.tasks.filter { !$0.isDone }
+        let topGoals = viewModel.tasks.filter {
+            $0.timeframe == .allTime || $0.timeframe == .decade || $0.timeframe == .year
+        }
+
+        let endGoalsText = (topGoals.isEmpty ? viewModel.tasks : topGoals)
+            .prefix(4)
+            .map(\.text)
+            .joined(separator: ", ")
+        let doneText = completedTasks.prefix(3).map(\.text).joined(separator: ", ")
+        let leftText = remainingTasks.prefix(3).map(\.text).joined(separator: ", ")
+
+        let capyStats = stats
+            .map { "\(statName(for: $0.emoji)) \(Int($0.points))/5" }
+            .joined(separator: ", ")
+
+        let shopSummary = shopItems.prefix(5).map { item in
+            let availability = isPurchased(item) ? "bought today" : "available"
+            return "\(item.title.lowercased()) (\(item.cost) coins, \(itemEffectText(for: item)), \(availability))"
+        }
+        .joined(separator: "; ")
+
+        return """
+        time: \(timeText).
+        capy state: \(isCapySleeping ? "sleepy" : "awake").
+        coins: \(Int(balance)).
+        capy stats: \(capyStats).
+        user end goals: \(endGoalsText.isEmpty ? "none yet" : endGoalsText).
+        done (\(completedTasks.count)): \(doneText.isEmpty ? "none" : doneText).
+        left (\(remainingTasks.count)): \(leftText.isEmpty ? "none" : leftText).
+        shop today: \(shopSummary.isEmpty ? "not loaded" : shopSummary).
+        """
+    }
+
+    private func statName(for emoji: String) -> String {
+        switch emoji {
+        case "🍋":
+            return "energy"
+        case "🛁":
+            return "hygiene"
+        case "😁":
+            return "mood"
+        default:
+            return "stat"
         }
     }
 

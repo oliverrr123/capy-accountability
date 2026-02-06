@@ -124,7 +124,13 @@ class CapyBrain: ObservableObject {
         return .reply(choice?.message.content ?? "Thinking...")
     }
 
-    func coachReply(userMessage: String, goals: [String], completedCount: Int, pendingCount: Int) async -> String {
+    func coachReply(
+        userMessage: String,
+        goals: [String],
+        completedCount: Int,
+        pendingCount: Int,
+        extraContext: String? = nil
+    ) async -> String {
         let fallback = fallbackCoachReply(userMessage: userMessage, goals: goals, pendingCount: pendingCount)
         guard !apiKey.isEmpty else { return fallback }
 
@@ -142,15 +148,20 @@ class CapyBrain: ObservableObject {
             avoid pressure and avoid hard commands.
             nudge gently only when useful.
             reference one concrete goal when possible.
+            if the user taps you to ask how you feel, use the provided app context:
+            mention how you feel, mention coins, progress, and one shop item naturally.
             """
         ]
 
-        let userPayload = """
+        var userPayload = """
         User message: \(userMessage)
         Active goals: \(contextSummary)
         Completed tasks: \(completedCount)
         Pending tasks: \(pendingCount)
         """
+        if let extraContext, !extraContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            userPayload += "\nExtra context: \(extraContext)"
+        }
 
         let userContext = [
             "role": "user",
