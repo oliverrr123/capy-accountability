@@ -99,6 +99,48 @@ struct SoundBarsSmall: View {
     }
 }
 
+struct CircularTranscriptRing: View {
+    var transcript: String
+    var ringDiameter: CGFloat = 72
+
+    private let visibleCharacterCount = 42
+    private let fallbackText = " LISTENING • "
+
+    private var ringCharacters: [Character] {
+        let cleaned = transcript
+            .uppercased()
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let source = cleaned.isEmpty ? fallbackText : " \(cleaned) • "
+        if source.count >= visibleCharacterCount {
+            return Array(source.suffix(visibleCharacterCount))
+        }
+
+        let repeats = max((visibleCharacterCount + source.count - 1) / source.count, 1)
+        let repeated = String(repeating: source, count: repeats)
+        return Array(repeated.prefix(visibleCharacterCount))
+    }
+
+    var body: some View {
+        let chars = ringCharacters
+        let step = 360.0 / Double(chars.count)
+
+        ZStack {
+            ForEach(Array(chars.enumerated()), id: \.offset) { index, character in
+                Text(String(character))
+                    .font(.custom("Gaegu-Bold", size: 9))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .offset(y: -(ringDiameter / 2))
+                    .rotationEffect(.degrees(Double(index) * step))
+            }
+        }
+        .frame(width: ringDiameter + 18, height: ringDiameter + 18)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 struct HomeView2: View {
     @ObservedObject var store: CapyStore
 
@@ -218,11 +260,12 @@ struct HomeView2: View {
         homeContent
         .ignoresSafeArea(edges: showChatInput ? .top : .all)
         .onChange(of: speechRecognizer.isRecording) { _, isRecording in
-            if !isRecording {
-                if !speechRecognizer.transcript.isEmpty {
-                    sendVoiceMessage(speechRecognizer.transcript)
-                }
-            }
+            guard !isRecording else { return }
+            let finalTranscript = speechRecognizer.transcript
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !finalTranscript.isEmpty else { return }
+            sendVoiceMessage(finalTranscript)
+            speechRecognizer.transcript = ""
         }
         .alert("New Goal", isPresented: $showAddAlert) {
             TextField("Enter goal...", text: $newTaskText)
@@ -422,9 +465,15 @@ struct HomeView2: View {
                             .foregroundStyle(.white)
                     }
                 }
+                .overlay {
+                    if speechRecognizer.isRecording {
+                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
+                    }
+                }
             }
             .disabled(isCapySleeping || thinkingState != .none)
             .opacity(isCapySleeping ? 0.6 : 1.0)
+            .accessibilityLabel(speechRecognizer.isRecording ? "Stop Dictate" : "Dictate")
             
             Button(action: openChat) {
                 ZStack {
