@@ -334,6 +334,15 @@ struct HomeView2: View {
             Text(shopAlertMessage)
         }
         .sheet(isPresented: $showShopSheet) {
+            CapyShopSheet(
+                dayLabel: shopDayLabel(from: currentShopDayKey),
+                balance: store.stats.coins,
+                items: shopItems,
+                isPurchased: { isPurchased($0) },
+                onBuy: { buyShopItem($0) }
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
             shopSheetContent
         }
         .sheet(isPresented: $showLiveActivitySheet) {
@@ -1537,27 +1546,33 @@ private struct CapyShopSheet: View {
                 .padding(.top, 8)
 
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("capyshop")
-                        .font(.custom("Gaegu-Regular", size: 32))
-                    Text("care drop for your capy: \(dayLabel)")
-                        .font(.custom("Gaegu-Regular", size: 17))
-                        .foregroundStyle(Color.capyBrown.opacity(0.75))
-                }
+                Text("CapyShop")
+                    .font(.custom("Gaegu-Regular", size: 28))
+                    .foregroundStyle(Color.capyDarkBrown)
                 Spacer()
-                Text("🪙 \(balance)")
+                
+                Text("🪙")
                     .font(.custom("Gaegu-Regular", size: 24))
+                    .padding(.top, 2)
+                Text(String(balance))
+                    .font(.custom("Gaegu-Regular", size: 28))
+                    .foregroundStyle(Color.capyDarkBrown)
             }
             .padding(.horizontal, 20)
+            
+            Text("care drop for your capy: \(dayLabel)")
+                .font(.custom("Gaegu-Regular", size: 17))
+                .foregroundStyle(Color.capyBrown.opacity(0.75))
+                .padding(.horizontal, 20)
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text("how to buy: tap a \"buy\" button.")
-                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
-            }
-            .font(.custom("Gaegu-Regular", size: 16))
-            .foregroundStyle(Color.capyBrown.opacity(0.8))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
+//            VStack(alignment: .leading, spacing: 3) {
+//                Text("how to buy: tap a \"buy\" button.")
+//                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
+//            }
+//            .font(.custom("Gaegu-Regular", size: 16))
+//            .foregroundStyle(Color.capyBrown.opacity(0.8))
+//            .frame(maxWidth: .infinity, alignment: .leading)
+//            .padding(.horizontal, 20)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 10) {
@@ -1567,15 +1582,21 @@ private struct CapyShopSheet: View {
                                 .font(.system(size: 30))
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .font(.custom("Gaegu-Regular", size: 22))
-                                    .foregroundStyle(Color.capyDarkBrown)
+                                HStack {
+                                    Text(item.title)
+                                        .font(.custom("Gaegu-Regular", size: 22))
+                                        .foregroundStyle(Color.capyDarkBrown)
+                                    Text(effectText2(for: item))
+                                        .font(.custom("Gaegu-Regular", size: 18))
+                                        .foregroundStyle(Color.capyBrown)
+                                        .opacity(0.8)
+                                }
                                 Text(item.description)
                                     .font(.custom("Gaegu-Regular", size: 16))
                                     .foregroundStyle(Color.capyBrown.opacity(0.78))
-                                Text(effectText(for: item))
-                                    .font(.custom("Gaegu-Regular", size: 15))
-                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
+//                                Text(effectText(for: item))
+//                                    .font(.custom("Gaegu-Regular", size: 15))
+//                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
                             }
 
                             Spacer()
@@ -1598,14 +1619,13 @@ private struct CapyShopSheet: View {
                         .background(Color.white.opacity(0.72))
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     }
+                    Text("new items appear daily at midnight.")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.capyBrown.opacity(0.75))
+                        .padding(.vertical, 14)
                 }
                 .padding(.horizontal, 20)
             }
-
-            Text("new capy care items appear daily at midnight.")
-                .font(.custom("Gaegu-Regular", size: 18))
-                .foregroundStyle(Color.capyBrown.opacity(0.75))
-                .padding(.bottom, 14)
         }
         .background(Color.capyBeige.opacity(0.96))
     }
@@ -1624,6 +1644,11 @@ private struct CapyShopSheet: View {
         default:
             return "effect: +1 stat (\(stat))"
         }
+    }
+    
+    private func effectText2(for item: CapyShopItem) -> String {
+        guard let stat = item.statReward else { return "" }
+        return "(+\(stat))"
     }
 }
 
