@@ -24,7 +24,7 @@ struct FlyingCoin: Identifiable {
     let id = UUID()
     var startPosition: CGPoint
     let explodeOffset: CGSize
-    let endPosition: CGPoint = CGPoint(x: 32, y: 87)
+    let endPosition: CGPoint = CGPoint(x: 32, y: 59)
     
     let value: Int
 }
@@ -106,7 +106,11 @@ struct HomeView2: View {
     @State private var shopAlertMessage = ""
 
     @State private var capyText = "yo bro, i'm capy. tap capyshop if you wanna grab me care stuff."
-    @State private var capyInput = ""
+    
+    @State private var showChatInput = false
+    @State private var chatInputText = ""
+    @FocusState private var isChatFocused: Bool
+    
     @State private var capyIsThinking = false
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
@@ -115,65 +119,21 @@ struct HomeView2: View {
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        ZStack {
-            Color.capyBlue
-                .ignoresSafeArea()
-
-            Image("wallpaper")
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-                .opacity(0.5)
-
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.2),
-                    Color.black.opacity(0.1),
-                    Color.black.opacity(0),
-                    Color.black.opacity(0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            GeometryReader { geometry in
-                VStack(spacing: 10) {
-                    Spacer()
-                    topBar
-//                    shopCareHint
-                    todoPart
-                    Spacer()
-                    capyPart
+        GeometryReader { geometry in
+            chatInterfaceLayer
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .background(
+                    gameContentLayer(geometry: geometry)
+                        .frame(height: UIScreen.main.bounds.height)
+                    , alignment: .top
+                )
+                .background(backGroundLayer)
+                .overlay(coinsLayer)
+                .onTapGesture {
+                    if showChatInput { closeChat() }
                 }
-                .padding(.top, geometry.safeAreaInsets.top + 6)
-                .padding(.bottom, max(geometry.safeAreaInsets.bottom, 12))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            }
-
-            GeometryReader { _ in
-                ForEach(flyingCoins) { coin in
-                    Image("coin")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .modifier(ExplodingCoinModifier(coin: coin) {
-                            flyingCoins.removeAll(where: { $0.id == coin.id })
-//                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-//                                balanceDisplay += 1
-//                            }
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                                balanceDisplay += Double(coin.value)
-                            }
-                            
-                            let impact = UIImpactFeedbackGenerator(style: .light)
-                            impact.impactOccurred()
-                        })
-                }
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
         }
+        .ignoresSafeArea(edges: showChatInput ? .top : .all)
         .alert("New Goal", isPresented: $showAddAlert) {
             TextField("Enter goal...", text: $newTaskText)
             Button("Add", action: addNewTask)
@@ -206,6 +166,11 @@ struct HomeView2: View {
             }
             Button("Cancel", role: .cancel) {}
         }
+//        .alert("Chat with Capy", isPresented: $showChatAlert) {
+//            TextField("Say something...", text: $chatInputText)
+//            Button("Send") { sendMessageToCapy() }
+//            Button("Cancel", role: .cancel) {}
+//        }
         .alert("CapyShop", isPresented: $showShopAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -247,6 +212,158 @@ struct HomeView2: View {
             guard newPhase == .active else { return }
             refreshDailyShopIfNeeded()
             refreshCapySleepState()
+        }
+//        .ignoresSafeArea() //  I need this to be here when the chat is not open, and when it's open, I need it to not be here. How do I do that
+    }
+    
+    private func gameContentLayer(geometry: GeometryProxy) -> some View {
+        VStack(spacing: 10) {
+            Spacer()
+            topBar
+//                    shopCareHint
+            todoPart
+            Spacer()
+            capyPart
+        }
+        .padding(.top, geometry.safeAreaInsets.top + 24)
+//        .padding(.bottom, showChatInput ? 10 : 0)
+        .frame(width: geometry.size.width)
+//        .ignoresSafeArea(.keyboard, edges: .bottom)
+    }
+    
+    private var chatInterfaceLayer: some View {
+        VStack {
+            Spacer()
+            if showChatInput {
+                chatInputBar
+            } else {
+                statsAndChatButton
+            }
+        }
+    }
+    
+    private var chatInputBar: some View {
+        HStack(spacing: 8) {
+            Button {
+                closeChat()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.capyBrown.opacity(0.2))
+            }
+            
+            TextField("talk to capy...", text: $chatInputText)
+                .font(.custom("Gaegu-Regular", size: 20))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color.gray.opacity(0.2))
+                .clipShape(Capsule())
+                .focused($isChatFocused)
+                .submitLabel(.send)
+                .onSubmit { sendMessageToCapy() }
+            
+            Button {
+                sendMessageToCapy()
+            } label: {
+                Image("send")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(8)
+                    .frame(width: 44, height: 44)
+                    .background(chatInputText.isEmpty ? Color.gray.opacity(0.5) : Color.capyBlue)
+                    .clipShape(Circle())
+            }
+            .disabled(chatInputText.isEmpty)
+        }
+        .padding(12)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.15), radius: 5, y: -2)
+        .padding(.horizontal, 10)
+        .padding(.bottom, 5)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+    
+    private var statsAndChatButton: some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            VStack(spacing: 12) {
+                ForEach(stats) { stat in
+                    VStack(spacing: 0) {
+                        Text(stat.emoji)
+                            .font(.system(size: 22))
+                        Text("\(Int(stat.points))/5")
+                            .font(.custom("Gaegu-Regular", size: 14))
+                            .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+                    }
+                }
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .background(.white.opacity(0.9))
+            .clipShape(Capsule())
+            
+            Spacer()
+            
+            Button(action: openChat) {
+                Image(systemName: "bubble.right.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
+                    .background(Color.capyBlue)
+                    .clipShape(Circle())
+                    .shadow(radius: 4)
+            }
+            .disabled(isCapySleeping || capyIsThinking)
+            .opacity(isCapySleeping ? 0.6 : 1.0)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 30)
+        .transition(.opacity)
+    }
+    
+    private var backGroundLayer: some View {
+        ZStack {
+            Color.capyBlue
+            Image("wallpaper")
+                .resizable()
+                .scaledToFill()
+                .opacity(0.5)
+            
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.2),
+                    Color.black.opacity(0.1),
+                    Color.black.opacity(0),
+                    Color.black.opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+//            .onTapGesture {
+//                if showChatInput { closeChat() }
+//            }
+    }
+    
+    private var coinsLayer: some View {
+        ForEach(flyingCoins) { coin in
+            Image("coin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 24, height: 24)
+                .modifier(ExplodingCoinModifier(coin: coin) {
+                    flyingCoins.removeAll(where: { $0.id == coin.id })
+//                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+//                                balanceDisplay += 1
+//                            }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        balanceDisplay += Double(coin.value)
+                    }
+                    
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                })
         }
     }
 
@@ -449,7 +566,7 @@ struct HomeView2: View {
             .padding(.horizontal, 20)
 
 //            HStack(spacing: 10) {
-//                TextField("reply to capy...", text: $capyInput)
+//                TextField("reply to capy...", text: $chatInputText)
 //                    .font(.custom("Gaegu-Regular", size: 20))
 //                    .foregroundStyle(Color.capyDarkBrown)
 //                    .submitLabel(.send)
@@ -481,28 +598,30 @@ struct HomeView2: View {
                 .onTapGesture {
                     handleCapyTap()
                 }
-                .overlay(alignment: .bottom) {
-                    HStack {
-                        ForEach(stats) { stat in
-                            HStack {
-                                Text(stat.emoji)
-                                    .font(Font.system(size: 24, weight: .bold, design: .default))
-                                Text("\(Int(stat.points))/5")
-                                    .font(.custom("Gaegu-Regular", size: 24))
-                                    .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(8)
-                    .frame(maxWidth: .infinity)
-                    .background(.white.opacity(0.8))
-                    .clipShape(Capsule())
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
-                }
+                .ignoresSafeArea()
+//                .overlay(alignment: .bottom) {
+//                    HStack {
+//                        ForEach(stats) { stat in
+//                            HStack {
+//                                Text(stat.emoji)
+//                                    .font(Font.system(size: 24, weight: .bold, design: .default))
+//                                Text("\(Int(stat.points))/5")
+//                                    .font(.custom("Gaegu-Regular", size: 24))
+//                                    .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+//                            }
+//                            .frame(maxWidth: .infinity)
+//                        }
+//                    }
+//                    .padding(8)
+//                    .frame(maxWidth: .infinity)
+//                    .background(.white.opacity(0.8))
+//                    .clipShape(Capsule())
+//                    .padding(.horizontal, 20)
+//                    .padding(.bottom, 40)
+//                }
         }
         .frame(maxWidth: .infinity, alignment: .bottom)
+        .ignoresSafeArea()
     }
 
     private var purchasedItemIDs: Set<String> {
@@ -760,12 +879,28 @@ struct HomeView2: View {
         lastSessionGoalCheckInDate = now
         lastGoalCheckInTimestamp = now.timeIntervalSince1970
     }
+    
+    private func openChat() {
+        chatInputText = ""
+        withAnimation {
+            showChatInput = true
+            isChatFocused = true
+        }
+    }
+    
+    private func closeChat() {
+        withAnimation {
+            showChatInput = false
+            isChatFocused = false
+        }
+    }
 
     private func sendMessageToCapy() {
-        let message = capyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let message = chatInputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !isCapySleeping, !message.isEmpty, !capyIsThinking else { return }
 
-        capyInput = ""
+        chatInputText = ""
+        closeChat()
         capyIsThinking = true
 
         Task {

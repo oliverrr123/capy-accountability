@@ -129,7 +129,7 @@ struct SpeechView3: View {
             }
         }
         .onAppear {
-            capyText = "Hey \(name), what are your goals?"
+            capyText = "Hey \(name), what are your long-term life goals?"
         }
     }
     
@@ -141,7 +141,7 @@ struct SpeechView3: View {
                 if messages.isEmpty {
                     messages.append([
                         "role": "assistant",
-                        "content": "Hey \(name), what are your goals?"
+                        "content": "Hey \(name), what are your long-term life goals?"
                     ])
                 }
                 

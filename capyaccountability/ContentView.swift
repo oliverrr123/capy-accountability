@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @AppStorage("capy_has_onboarded") private var hasOnboarded = true
+    @AppStorage("capy_has_onboarded") private var hasOnboarded = false
 //    @AppStorage("capy_user_name") private var userName = ""
 //    @AppStorage("capy_user_goals") private var userGoals = ""
     
