@@ -9,7 +9,7 @@ enum CapyButtonStyle {
         switch self {
             case .primary: return .capyBeige
             case .secondary: return .capyBrown
-            case .skyLight(let base, _): return .white
+            case .skyLight: return .white
         }
     }
 
@@ -17,7 +17,7 @@ enum CapyButtonStyle {
         switch self {
             case .primary: return .capyBrown
             case .secondary: return .capyBeige
-            case .skyLight: return .black
+            case .skyLight: return .capyDarkBrown
         }
     }
     

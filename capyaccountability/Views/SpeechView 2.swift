@@ -6,8 +6,9 @@ struct SpeechView2: View {
     var onBack: () -> Void
     var onSubmit: () -> Void
     
-    @FocusState private var nameFocused: Bool
+    @AppStorage("user_name") private var savedName = ""
     
+    @FocusState private var nameFocused: Bool
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -55,6 +56,7 @@ struct SpeechView2: View {
                             
                             Text("What's ur name?")
                                 .font(.custom("Gaegu-Regular", size: 28))
+                                .foregroundStyle(Color.capyDarkBrown)
                                 .padding(.bottom, 18)
                         }
                         
@@ -69,7 +71,7 @@ struct SpeechView2: View {
                         TextField("name", text: $name)
                             .focused($nameFocused)
                             .font(.custom("Gaegu-Regular", size: 28))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(Color.capyDarkBrown)
                             .submitLabel(.done)
                             .onSubmit { submit() }
                             .padding(.horizontal, 20)
@@ -100,6 +102,7 @@ struct SpeechView2: View {
     }
     
     private func submit() {
+        savedName = name
         nameFocused = false
         onSubmit()
     }

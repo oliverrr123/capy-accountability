@@ -184,6 +184,7 @@ struct HomeView2: View {
     @StateObject private var speechRecognizer = SpeechRecognizer()
     @StateObject private var liveActivityManager = CapyLiveActivityManager()
 
+    @AppStorage("user_name") private var userName = "bro"
     @AppStorage("capy_shop_last_day_key") private var shopLastDayKey = ""
     @AppStorage("capy_shop_purchased_ids") private var purchasedShopItemsCSV = ""
     @AppStorage("capy_last_goal_checkin_ts") private var lastGoalCheckInTimestamp = 0.0
@@ -231,7 +232,6 @@ struct HomeView2: View {
     
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
-    @State private var topSafePadding: CGFloat = 59
 
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -280,12 +280,6 @@ struct HomeView2: View {
             }
             .coordinateSpace(name: "homeLayer")
             .overlay(coinsLayer)
-            .onAppear {
-                topSafePadding = geometry.safeAreaInsets.top
-            }
-            .onChange(of: geometry.safeAreaInsets.top) { _, newValue in
-                topSafePadding = newValue
-            }
         }
     }
 
@@ -1046,9 +1040,29 @@ struct HomeView2: View {
 
     private func addNewTask() {
         guard !newTaskText.isEmpty else { return }
+        
+        let newGoalTitle = newTaskText
 
         withAnimation {
             store.addTask(title: newTaskText, frequency: selectedFrequency)
+        }
+        
+        newTaskText = ""
+        
+        thinkingState = .text
+        
+        Task {
+            let reply = await brain.coachReply(
+                userMessage: "i just added a new goal called \"\(newGoalTitle)\". give me a super short, chill confirmation",
+                goals: pendingTasks.map { $0.title },
+                completedCount: store.tasks.filter { $0.isDone }.count,
+                pendingCount: pendingTasks.count
+            )
+            
+            await MainActor.run {
+                capyText = reply
+                thinkingState = .none
+            }
         }
     }
 
@@ -1168,10 +1182,10 @@ struct HomeView2: View {
         }
 
         let prompts = [
-            "yo bro, how's \"{goal}\" feeling right now?",
-            "no pressure bro, got a tiny move for \"{goal}\"?",
+            "yo \(userName), how's \"{goal}\" feeling right now?",
+            "no pressure \(userName), got a tiny move for \"{goal}\"?",
             "if you want, we can do a 10-minute step on \"{goal}\".",
-            "what would make \"{goal}\" easier tonight, bro?"
+            "what would make \"{goal}\" easier tonight, \(userName)?"
         ]
 
         let template = prompts.randomElement() ?? "how's \"{goal}\" going, bro?"
@@ -1258,12 +1272,14 @@ struct HomeView2: View {
     }
     
     private func processCoachReply(message: String) {
+        let context = capyContextForFeeling()
         Task {
             let reply = await brain.coachReply(
                 userMessage: message,
                 goals: pendingTasks.map { $0.title },
                 completedCount: store.tasks.filter { $0.isDone }.count,
-                pendingCount: pendingTasks.count
+                pendingCount: pendingTasks.count,
+                extraContext: context
             )
             await MainActor.run {
                 capyText = reply
@@ -1339,6 +1355,7 @@ struct HomeView2: View {
 
         return """
         time: \(timeText).
+        user name: \(userName).
         capy state: \(isCapySleeping ? "sleepy" : "awake").
         coins: \(Int(balanceDisplay)).
         capy stats: \(capyStats).
