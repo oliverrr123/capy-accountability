@@ -105,8 +105,9 @@ struct CircularTranscriptRing: View {
 
     private let visibleCharacterCount = 42
     private let fallbackText = " LISTENING • "
-    @State private var hasPoppedOut = false
+    @State private var popProgress: CGFloat = 0
     @State private var isSpinning = false
+    private let rotationDuration = 12.0
 
     private var ringCharacters: [Character] {
         let cleaned = transcript
@@ -127,38 +128,34 @@ struct CircularTranscriptRing: View {
     var body: some View {
         let chars = ringCharacters
         let step = 360.0 / Double(chars.count)
+        let currentRadius = (ringDiameter / 2) * (0.16 + 0.84 * popProgress)
 
         ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.25), lineWidth: 1.2)
-                .frame(width: ringDiameter + 8, height: ringDiameter + 8)
-                .blur(radius: 0.4)
-
             ForEach(Array(chars.enumerated()), id: \.offset) { index, character in
                 Text(String(character))
                     .font(.custom("Gaegu-Bold", size: 9))
                     .foregroundStyle(.white.opacity(0.98))
-                    .offset(y: -(ringDiameter / 2))
+                    .offset(y: -currentRadius)
                     .rotationEffect(.degrees(Double(index) * step))
             }
         }
         .frame(width: ringDiameter + 18, height: ringDiameter + 18)
         .rotationEffect(.degrees(isSpinning ? 360 : 0))
-        .scaleEffect(hasPoppedOut ? 1.0 : 0.22)
-        .opacity(hasPoppedOut ? 1 : 0)
-        .blur(radius: hasPoppedOut ? 0 : 3)
+        .scaleEffect(0.82 + 0.18 * popProgress)
+        .opacity(popProgress)
+        .blur(radius: (1 - popProgress) * 1.6)
         .onAppear {
-            hasPoppedOut = false
+            popProgress = 0
             isSpinning = false
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.68)) {
-                hasPoppedOut = true
+            withAnimation(.spring(response: 0.52, dampingFraction: 0.76)) {
+                popProgress = 1
             }
-            withAnimation(.linear(duration: 1.35).repeatForever(autoreverses: false)) {
+            withAnimation(.linear(duration: rotationDuration).repeatForever(autoreverses: false)) {
                 isSpinning = true
             }
         }
         .onDisappear {
-            hasPoppedOut = false
+            popProgress = 0
             isSpinning = false
         }
         .allowsHitTesting(false)
@@ -334,15 +331,6 @@ struct HomeView2: View {
             Text(shopAlertMessage)
         }
         .sheet(isPresented: $showShopSheet) {
-            CapyShopSheet(
-                dayLabel: shopDayLabel(from: currentShopDayKey),
-                balance: store.stats.coins,
-                items: shopItems,
-                isPurchased: { isPurchased($0) },
-                onBuy: { buyShopItem($0) }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.hidden)
             shopSheetContent
         }
         .sheet(isPresented: $showLiveActivitySheet) {
@@ -480,32 +468,29 @@ struct HomeView2: View {
             
             Button(action: handleMicTap) {
                 ZStack {
-                    if speechRecognizer.isRecording {
-                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
-                            .zIndex(0)
-                    }
-
                     Circle()
                         .fill(Color.capyBlue)
                         .frame(width: 50, height: 50)
                         .shadow(radius: 4)
-                        .zIndex(1)
                     
                     if speechRecognizer.isRecording {
 //                        Image(systemName: "waveform")
 //                            .font(.system(size: 24))
 //                            .foregroundStyle(.white)
                         SoundBarsSmall(level: CGFloat(speechRecognizer.soundLevel))
-                            .zIndex(2)
                     } else if thinkingState == .mic {
                         ProgressView()
                             .tint(.white)
-                            .zIndex(2)
                     } else {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 22))
                             .foregroundStyle(.white)
-                            .zIndex(2)
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .background {
+                    if speechRecognizer.isRecording {
+                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
                     }
                 }
             }
