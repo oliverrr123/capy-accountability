@@ -262,7 +262,7 @@ struct HomeView2: View {
                 
                 capyPart
                     .frame(width: UIScreen.main.bounds.width)
-                    .offset(y: keyboardHeight > 0 ? -(keyboardHeight-20) : 0)
+                    .offset(y: (keyboardHeight > 0 && isChatFocused) ? -(keyboardHeight-20) : 0)
                     .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
                     .zIndex(10)
                     .onTapGesture {
@@ -441,7 +441,7 @@ struct HomeView2: View {
                 statsAndChatButton
             }
         }
-        .padding(.bottom, keyboardHeight > 0 ? keyboardHeight : (showChatInput ? 0 : 30))
+        .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight : (showChatInput ? 0 : 30))
         .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
     }
     
@@ -864,7 +864,7 @@ struct HomeView2: View {
             Image(isCapySleeping ? "capy_sleep" : "capy_sit")
                 .resizable()
                 .scaledToFill()
-                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight/2 : 40)
+                .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight/2 : 40)
                 .frame(width: UIScreen.main.bounds.width)
 //                .padding(.bottom, 10)
                 .onTapGesture {
