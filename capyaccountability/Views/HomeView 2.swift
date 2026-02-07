@@ -15,8 +15,7 @@ struct FlyingCoin: Identifiable {
     let id = UUID()
     var startPosition: CGPoint
     let explodeOffset: CGSize
-    let endPosition: CGPoint = CGPoint(x: 32, y: 59)
-    
+    let endPosition: CGPoint
     let value: Int
 }
 
@@ -52,26 +51,40 @@ enum ThinkingState {
     case mic
 }
 
-struct SoundBarsSmalll: View {
-    var level: CGFloat
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            bar(delay: 0.0)
-            bar(delay: 0.1)
-            bar(delay: 0.2)
-        }
-    }
-    
-    func bar(delay: Double) -> some View {
-        let height = max(10, CGFloat(level) * 40 + CGFloat.random(in: 0...10))
+extension Publishers {
+    static var keyboardHeight: AnyPublisher<CGFloat, Never> {
+        let willShow = NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+            .map { $0.userInfo![UIResponder.keyboardFrameEndUserInfoKey] as! CGRect }
+            .map { $0.height }
         
-        return RoundedRectangle(cornerRadius: 2)
-            .fill(Color.white)
-            .frame(width: 4, height: height)
-            .animation(.easeInOut(duration: 0.15), value: level)
+        let willHide = NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+            .map { _ in CGFloat(0) }
+        
+        return MergeMany(willShow, willHide)
+            .eraseToAnyPublisher()
     }
 }
+
+//struct SoundBarsSmalll: View {
+//    var level: CGFloat
+//    
+//    var body: some View {
+//        HStack(spacing: 4) {
+//            bar(delay: 0.0)
+//            bar(delay: 0.1)
+//            bar(delay: 0.2)
+//        }
+//    }
+//    
+//    func bar(delay: Double) -> some View {
+//        let height = max(10, CGFloat(level) * 40 + CGFloat.random(in: 0...10))
+//        
+//        return RoundedRectangle(cornerRadius: 2)
+//            .fill(Color.white)
+//            .frame(width: 4, height: height)
+//            .animation(.easeInOut(duration: 0.15), value: level)
+//    }
+//}
 
 struct SoundBarsSmall: View {
     var level: CGFloat
@@ -190,11 +203,13 @@ struct HomeView2: View {
     @State private var showChatInput = false
     @State private var chatInputText = ""
     @FocusState private var isChatFocused: Bool
-    
     @State private var thinkingState: ThinkingState = .none
+    @State private var keyboardHeight: CGFloat = 0
+    @State private var coinIconTarget: CGPoint = .zero
     
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
+    @State private var topSafePadding: CGFloat = 59
 
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -215,18 +230,40 @@ struct HomeView2: View {
 
     private var homeContent: some View {
         GeometryReader { geometry in
-            chatInterfaceLayer
-                .frame(width: geometry.size.width, height: geometry.size.height)
-                .background(
-                    gameContentLayer(geometry: geometry)
-                        .frame(height: UIScreen.main.bounds.height)
-                    , alignment: .top
-                )
-                .background(backGroundLayer)
-                .overlay(coinsLayer)
-                .onTapGesture {
-                    if showChatInput { closeChat() }
-                }
+            ZStack(alignment: .bottom) {
+                backGroundLayer
+                gameContentLayer(geometry: geometry)
+                    .frame(height: UIScreen.main.bounds.height)
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    .opacity(showChatInput ? 0.3 : 1.0)
+                    .animation(.spring, value: showChatInput)
+                
+                capyPart
+                    .frame(width: UIScreen.main.bounds.width)
+                    .offset(y: keyboardHeight > 0 ? -(keyboardHeight-20) : 0)
+                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
+                    .zIndex(10)
+                    .onTapGesture {
+                        if showChatInput {
+                            closeChat()
+                        } else {
+                            handleCapyTap()
+                        }
+                    }
+                    .ignoresSafeArea()
+                
+                chatInterfaceLayer
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .zIndex(20)
+            }
+            .coordinateSpace(name: "homeLayer")
+            .overlay(coinsLayer)
+            .onAppear {
+                topSafePadding = geometry.safeAreaInsets.top
+            }
+            .onChange(of: geometry.safeAreaInsets.top) { _, newValue in
+                topSafePadding = newValue
+            }
         }
     }
 
@@ -239,7 +276,7 @@ struct HomeView2: View {
             onBuy: { buyShopItem($0) }
         )
         .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 
     private var liveActivitySheetContent: some View {
@@ -253,12 +290,13 @@ struct HomeView2: View {
             syncLiveActivity()
         }
         .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 
     var body: some View {
         homeContent
-        .ignoresSafeArea(edges: showChatInput ? .top : .all)
+        .onReceive(Publishers.keyboardHeight) { self.keyboardHeight = $0 }
+        .ignoresSafeArea()
         .onChange(of: speechRecognizer.isRecording) { _, isRecording in
             guard !isRecording else { return }
             let finalTranscript = speechRecognizer.transcript
@@ -309,15 +347,6 @@ struct HomeView2: View {
             Text(shopAlertMessage)
         }
         .sheet(isPresented: $showShopSheet) {
-            CapyShopSheet(
-                dayLabel: shopDayLabel(from: currentShopDayKey),
-                balance: store.stats.coins,
-                items: shopItems,
-                isPurchased: { isPurchased($0) },
-                onBuy: { buyShopItem($0) }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.hidden)
             shopSheetContent
         }
         .sheet(isPresented: $showLiveActivitySheet) {
@@ -369,14 +398,15 @@ struct HomeView2: View {
     
     private func gameContentLayer(geometry: GeometryProxy) -> some View {
         VStack(spacing: 10) {
-            Spacer()
+//            Spacer()
             topBar
 //                    shopCareHint
             todoPart
             Spacer()
-            capyPart
+//            capyPart
+            Spacer().frame(height: 120)
         }
-        .padding(.top, geometry.safeAreaInsets.top + 24)
+        .padding(.top, geometry.safeAreaInsets.top + 70)
         .frame(width: geometry.size.width)
     }
     
@@ -389,6 +419,8 @@ struct HomeView2: View {
                 statsAndChatButton
             }
         }
+        .padding(.bottom, keyboardHeight > 0 ? keyboardHeight : (showChatInput ? 0 : 30))
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
     }
     
     private var chatInputBar: some View {
@@ -426,10 +458,10 @@ struct HomeView2: View {
         }
         .padding(12)
         .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+//        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: .black.opacity(0.15), radius: 5, y: -2)
-        .padding(.horizontal, 10)
-        .padding(.bottom, 5)
+//        .padding(.horizontal, 10)
+//        .padding(.bottom, 5)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
     
@@ -504,8 +536,8 @@ struct HomeView2: View {
             .opacity(isCapySleeping ? 0.6 : 1.0)
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 30)
-        .transition(.opacity)
+//        .padding(.bottom, 30)
+//        .transition(.opacity)
     }
     
     private var backGroundLayer: some View {
@@ -558,6 +590,18 @@ struct HomeView2: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 24, height: 24)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear
+                                .onAppear {
+                                    let frame = geo.frame(in: .named("homeLayer"))
+                                    coinIconTarget = CGPoint(x: frame.midX, y: frame.midY)
+                                }
+                                .onChange(of: geo.frame(in: .named("homeLayer"))) { _, newFrame in
+                                    coinIconTarget = CGPoint(x: newFrame.midX, y: newFrame.midY)
+                                }
+                        }
+                    )
 
                 Text(String(Int(balanceDisplay)))
                     .font(Font.custom("Gaegu-Regular", size: 28))
@@ -740,6 +784,7 @@ struct HomeView2: View {
 
     private var capyPart: some View {
         VStack(spacing: -6) {
+            Spacer()
             ZStack {
                 Image("speech_bubble")
                     .resizable()
@@ -795,8 +840,9 @@ struct HomeView2: View {
 
             Image(isCapySleeping ? "capy_sleep" : "capy_sit")
                 .resizable()
-                .scaledToFit()
-                .frame(maxWidth: .infinity)
+                .scaledToFill()
+                .padding(.bottom, keyboardHeight > 0 ? keyboardHeight/2 : 40)
+                .frame(width: UIScreen.main.bounds.width)
 //                .padding(.bottom, 10)
                 .onTapGesture {
                     handleCapyTap()
@@ -823,8 +869,11 @@ struct HomeView2: View {
 //                    .padding(.bottom, 40)
 //                }
         }
-        .frame(maxWidth: .infinity, alignment: .bottom)
-        .ignoresSafeArea()
+//        .frame(maxWidth: .infinity, alignment: .bottom)
+//        .ignoresSafeArea()
+        .frame(height: 350)
+        .frame(width: UIScreen.main.bounds.width)
+//        .clipped()
     }
 
     private var purchasedItemIDs: Set<String> {
@@ -965,6 +1014,7 @@ struct HomeView2: View {
             let coin = FlyingCoin(
                 startPosition: startPoint,
                 explodeOffset: offset,
+                endPosition: coinIconTarget,
                 value: currentValue
             )
             flyingCoins.append(coin)
@@ -1426,7 +1476,7 @@ private struct LiveActivitySetupSheet: View {
             Capsule()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 60, height: 6)
-                .padding(.top, 8)
+                .padding(.top, 16)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("live activity")
