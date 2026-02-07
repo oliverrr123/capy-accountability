@@ -105,6 +105,8 @@ struct CircularTranscriptRing: View {
 
     private let visibleCharacterCount = 42
     private let fallbackText = " LISTENING • "
+    @State private var hasPoppedOut = false
+    @State private var isSpinning = false
 
     private var ringCharacters: [Character] {
         let cleaned = transcript
@@ -127,15 +129,38 @@ struct CircularTranscriptRing: View {
         let step = 360.0 / Double(chars.count)
 
         ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.25), lineWidth: 1.2)
+                .frame(width: ringDiameter + 8, height: ringDiameter + 8)
+                .blur(radius: 0.4)
+
             ForEach(Array(chars.enumerated()), id: \.offset) { index, character in
                 Text(String(character))
                     .font(.custom("Gaegu-Bold", size: 9))
-                    .foregroundStyle(.white.opacity(0.95))
+                    .foregroundStyle(.white.opacity(0.98))
                     .offset(y: -(ringDiameter / 2))
                     .rotationEffect(.degrees(Double(index) * step))
             }
         }
         .frame(width: ringDiameter + 18, height: ringDiameter + 18)
+        .rotationEffect(.degrees(isSpinning ? 360 : 0))
+        .scaleEffect(hasPoppedOut ? 1.0 : 0.22)
+        .opacity(hasPoppedOut ? 1 : 0)
+        .blur(radius: hasPoppedOut ? 0 : 3)
+        .onAppear {
+            hasPoppedOut = false
+            isSpinning = false
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.68)) {
+                hasPoppedOut = true
+            }
+            withAnimation(.linear(duration: 1.35).repeatForever(autoreverses: false)) {
+                isSpinning = true
+            }
+        }
+        .onDisappear {
+            hasPoppedOut = false
+            isSpinning = false
+        }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -446,28 +471,32 @@ struct HomeView2: View {
             
             Button(action: handleMicTap) {
                 ZStack {
+                    if speechRecognizer.isRecording {
+                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
+                            .zIndex(0)
+                    }
+
                     Circle()
                         .fill(Color.capyBlue)
                         .frame(width: 50, height: 50)
                         .shadow(radius: 4)
+                        .zIndex(1)
                     
                     if speechRecognizer.isRecording {
 //                        Image(systemName: "waveform")
 //                            .font(.system(size: 24))
 //                            .foregroundStyle(.white)
                         SoundBarsSmall(level: CGFloat(speechRecognizer.soundLevel))
+                            .zIndex(2)
                     } else if thinkingState == .mic {
                         ProgressView()
                             .tint(.white)
+                            .zIndex(2)
                     } else {
                         Image(systemName: "mic.fill")
                             .font(.system(size: 22))
                             .foregroundStyle(.white)
-                    }
-                }
-                .overlay {
-                    if speechRecognizer.isRecording {
-                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
+                            .zIndex(2)
                     }
                 }
             }
