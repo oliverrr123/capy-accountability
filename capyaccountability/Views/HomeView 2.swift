@@ -3,6 +3,7 @@ import AVFoundation
 import AudioToolbox
 import Combine
 import SwiftUI
+import Speech
 
 //struct TaskItem: Identifiable {
 //    let id = UUID()
@@ -64,12 +65,68 @@ extension CapyShopItem {
 //    case allTime = "All time"
 //}
 
+enum ThinkingState {
+    case none
+    case text
+    case mic
+}
+
+struct SoundBarsSmalll: View {
+    var level: CGFloat
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            bar(delay: 0.0)
+            bar(delay: 0.1)
+            bar(delay: 0.2)
+        }
+    }
+    
+    func bar(delay: Double) -> some View {
+        let height = max(10, CGFloat(level) * 40 + CGFloat.random(in: 0...10))
+        
+        return RoundedRectangle(cornerRadius: 2)
+            .fill(Color.white)
+            .frame(width: 4, height: height)
+            .animation(.easeInOut(duration: 0.15), value: level)
+    }
+}
+
+struct SoundBarsSmall: View {
+    var level: CGFloat
+    
+    private let weights: [CGFloat] = [0.15, 1.0, 0.8, 0.5]
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(weights.indices, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.white)
+                    .frame(width: 4, height: barHeight(weights[i]))
+            }
+        }
+        .animation(.easeIn(duration: 0.02), value: level)
+    }
+    
+    private func barHeight(_ weight: CGFloat) -> CGFloat {
+        let cleanLevel = level < 0.01 ? 0 : level
+        let boostedLevel = sqrt(cleanLevel)
+        let minHeight: CGFloat = 8
+        let maxHeight: CGFloat = 36
+        let jitter = CGFloat.random(in: 0.9...1.1)
+        return minHeight + (boostedLevel * maxHeight * weight * jitter)
+    }
+}
+
+
 struct HomeView2: View {
 //    @ObservedObject var viewModel: TaskViewModel
     @ObservedObject var store: CapyStore
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var brain = CapyBrain()
+    
+    @StateObject private var speechRecognizer = SpeechRecognizer()
 
     @AppStorage("capy_shop_last_day_key") private var shopLastDayKey = ""
     @AppStorage("capy_shop_purchased_ids") private var purchasedShopItemsCSV = ""
@@ -111,7 +168,9 @@ struct HomeView2: View {
     @State private var chatInputText = ""
     @FocusState private var isChatFocused: Bool
     
-    @State private var capyIsThinking = false
+    @State private var thinkingState: ThinkingState = .none
+    
+//    @State private var capyIsThinking = false
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
 
@@ -134,6 +193,13 @@ struct HomeView2: View {
                 }
         }
         .ignoresSafeArea(edges: showChatInput ? .top : .all)
+        .onChange(of: speechRecognizer.isRecording) { _, isRecording in
+            if !isRecording {
+                if !speechRecognizer.transcript.isEmpty {
+                    sendVoiceMessage(speechRecognizer.transcript)
+                }
+            }
+        }
         .alert("New Goal", isPresented: $showAddAlert) {
             TextField("Enter goal...", text: $newTaskText)
             Button("Add", action: addNewTask)
@@ -249,7 +315,7 @@ struct HomeView2: View {
             } label: {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
-                    .foregroundStyle(Color.capyBrown.opacity(0.2))
+                    .foregroundStyle(Color.gray.opacity(0.2))
             }
             
             TextField("talk to capy...", text: $chatInputText)
@@ -270,7 +336,7 @@ struct HomeView2: View {
                     .scaledToFit()
                     .padding(8)
                     .frame(width: 44, height: 44)
-                    .background(chatInputText.isEmpty ? Color.gray.opacity(0.5) : Color.capyBlue)
+                    .background(chatInputText.isEmpty ? Color.gray.opacity(0.2) : Color.capyBlue)
                     .clipShape(Circle())
             }
             .disabled(chatInputText.isEmpty)
@@ -304,16 +370,48 @@ struct HomeView2: View {
             
             Spacer()
             
-            Button(action: openChat) {
-                Image(systemName: "bubble.right.fill")
-                    .font(.system(size: 24))
-                    .foregroundStyle(.white)
-                    .frame(width: 50, height: 50)
-                    .background(Color.capyBlue)
-                    .clipShape(Circle())
-                    .shadow(radius: 4)
+            Button(action: handleMicTap) {
+                ZStack {
+                    Circle()
+                        .fill(Color.capyBlue)
+                        .frame(width: 50, height: 50)
+                        .shadow(radius: 4)
+                    
+                    if speechRecognizer.isRecording {
+//                        Image(systemName: "waveform")
+//                            .font(.system(size: 24))
+//                            .foregroundStyle(.white)
+                        SoundBarsSmall(level: CGFloat(speechRecognizer.soundLevel))
+                    } else if thinkingState == .mic {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 22))
+                            .foregroundStyle(.white)
+                    }
+                }
             }
-            .disabled(isCapySleeping || capyIsThinking)
+            .disabled(isCapySleeping || thinkingState != .none)
+            .opacity(isCapySleeping ? 0.6 : 1.0)
+            
+            Button(action: openChat) {
+                ZStack {
+                    Circle()
+                        .fill(Color.capyBlue)
+                        .frame(width: 50, height: 50)
+                        .shadow(radius: 4)
+                    if thinkingState == .text {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "bubble.right.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+            .disabled(isCapySleeping || thinkingState != .none)
             .opacity(isCapySleeping ? 0.6 : 1.0)
         }
         .padding(.horizontal, 20)
@@ -550,15 +648,15 @@ struct HomeView2: View {
                         .lineLimit(4)
                         .minimumScaleFactor(0.8)
 
-                    if capyIsThinking {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .tint(Color.capyDarkBrown)
-                            Text("capy is thinking...")
-                                .font(.custom("Gaegu-Regular", size: 16))
-                                .foregroundStyle(Color.capyDarkBrown.opacity(0.8))
-                        }
-                    }
+//                    if thinkingState != .none {
+//                        HStack(spacing: 8) {
+//                            ProgressView()
+//                                .tint(Color.capyDarkBrown)
+//                            Text("capy is thinking...")
+//                                .font(.custom("Gaegu-Regular", size: 16))
+//                                .foregroundStyle(Color.capyDarkBrown.opacity(0.8))
+//                        }
+//                    }
                 }
                 .padding(.horizontal, 28)
                 .padding(.bottom, 42)
@@ -853,7 +951,7 @@ struct HomeView2: View {
 
     private func maybeAskGoalCheckIn(force: Bool = false) {
         guard !isCapySleeping else { return }
-        guard !capyIsThinking else { return }
+        guard thinkingState == .none else { return }
         guard let targetTask = pendingTasks.randomElement() else { return }
 
         let now = Date()
@@ -897,12 +995,67 @@ struct HomeView2: View {
 
     private func sendMessageToCapy() {
         let message = chatInputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !isCapySleeping, !message.isEmpty, !capyIsThinking else { return }
+        guard !isCapySleeping, !message.isEmpty, thinkingState == .none else { return }
 
         chatInputText = ""
         closeChat()
-        capyIsThinking = true
-
+        thinkingState = .text
+        
+        processCoachReply(message: message)
+        
+//        Task {
+//            let reply = await brain.coachReply(
+//                userMessage: message,
+//                goals: pendingTasks.map { $0.title },
+//                completedCount: store.tasks.filter { $0.isDone }.count,
+//                pendingCount: pendingTasks.count
+//            )
+//            await MainActor.run {
+//                capyText = reply
+//                capyIsThinking = false
+//            }
+//        }
+    }
+    
+    private func handleMicTap() {
+        if speechRecognizer.isRecording {
+            speechRecognizer.stopTranscribing()
+        } else {
+            let start = { speechRecognizer.startTranscribing() }
+            
+            if #available(iOS 17.0, *) {
+                switch AVAudioApplication.shared.recordPermission {
+                case .granted: start()
+                case .undetermined:
+                    AVAudioApplication.requestRecordPermission { granted in
+                        DispatchQueue.main.async { if granted { start() } }
+                    }
+                case .denied: print("Mic denied")
+                @unknown default: break
+                }
+            } else {
+                let session = AVAudioSession.sharedInstance()
+                switch session.recordPermission {
+                case .granted:
+                    start()
+                case .undetermined:
+                    session.requestRecordPermission { granted in
+                        DispatchQueue.main.async { if granted { start() } }
+                    }
+                case .denied: print("Mic denied")
+                @unknown default: break
+                }
+            }
+        }
+    }
+    
+    private func sendVoiceMessage(_ text: String) {
+        guard !isCapySleeping, thinkingState == .none else { return }
+        thinkingState = .mic
+        processCoachReply(message: text)
+    }
+    
+    private func processCoachReply(message: String) {
         Task {
             let reply = await brain.coachReply(
                 userMessage: message,
@@ -912,7 +1065,10 @@ struct HomeView2: View {
             )
             await MainActor.run {
                 capyText = reply
-                capyIsThinking = false
+                thinkingState = .none
+                if showChatInput {
+                    closeChat()
+                }
             }
         }
     }
@@ -926,14 +1082,14 @@ struct HomeView2: View {
     }
 
     private func requestCapyFeelingUpdate() {
-        guard !capyIsThinking else { return }
+        guard thinkingState == .none else { return }
         refreshDailyShopIfNeeded()
 
         let completed = store.tasks.filter { $0.isDone }.count
         let pending = pendingTasks.count
         let context = capyContextForFeeling()
 
-        capyIsThinking = true
+        thinkingState = .text
         Task {
             let reply = await brain.coachReply(
                 userMessage: "i tapped you. tell me how you're feeling with this context. mention time, coins, progress, and one shop item.",
@@ -944,7 +1100,7 @@ struct HomeView2: View {
             )
             await MainActor.run {
                 capyText = reply
-                capyIsThinking = false
+                thinkingState = .none
             }
         }
     }
