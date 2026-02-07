@@ -104,13 +104,16 @@ struct HomeView2: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var brain = CapyBrain()
-    
     @StateObject private var speechRecognizer = SpeechRecognizer()
+    @StateObject private var liveActivityManager = CapyLiveActivityManager()
 
     @AppStorage("capy_shop_last_day_key") private var shopLastDayKey = ""
     @AppStorage("capy_shop_purchased_ids") private var purchasedShopItemsCSV = ""
     @AppStorage("capy_last_goal_checkin_ts") private var lastGoalCheckInTimestamp = 0.0
     @AppStorage("capy_last_wake_day_key") private var lastWakeDayKey = ""
+    @AppStorage("capy_live_activity_enabled") private var liveActivityEnabled = false
+    @AppStorage("capy_live_activity_mode") private var liveActivityModeRaw = CapyLiveActivityMode.capyCare.rawValue
+    @AppStorage("capy_live_activity_goal_scope") private var liveActivityGoalScopeRaw = CapyLiveActivityGoalScope.allGoals.rawValue
 
     @State private var showAddAlert = false
     @State private var newTaskText = ""
@@ -134,6 +137,7 @@ struct HomeView2: View {
     @State private var selectedFrequency: TaskFrequency = .daily
 
     @State private var showShopSheet = false
+    @State private var showLiveActivitySheet = false
     @State private var shopItems: [CapyShopItem] = []
     @State private var currentShopDayKey = ""
     @State private var showShopAlert = false
@@ -153,7 +157,21 @@ struct HomeView2: View {
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
-    var body: some View {
+    private var liveActivityModeSelection: Binding<CapyLiveActivityMode> {
+        Binding(
+            get: { liveActivityMode },
+            set: { liveActivityModeRaw = $0.rawValue }
+        )
+    }
+
+    private var liveActivityGoalScopeSelection: Binding<CapyLiveActivityGoalScope> {
+        Binding(
+            get: { liveActivityGoalScope },
+            set: { liveActivityGoalScopeRaw = $0.rawValue }
+        )
+    }
+
+    private var homeContent: some View {
         GeometryReader { geometry in
             chatInterfaceLayer
                 .frame(width: geometry.size.width, height: geometry.size.height)
@@ -168,6 +186,36 @@ struct HomeView2: View {
                     if showChatInput { closeChat() }
                 }
         }
+    }
+
+    private var shopSheetContent: some View {
+        CapyShopSheet(
+            dayLabel: shopDayLabel(from: currentShopDayKey),
+            balance: store.stats.coins,
+            items: shopItems,
+            isPurchased: { isPurchased($0) },
+            onBuy: { buyShopItem($0) }
+        )
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var liveActivitySheetContent: some View {
+        LiveActivitySetupSheet(
+            isEnabled: $liveActivityEnabled,
+            mode: liveActivityModeSelection,
+            goalScope: liveActivityGoalScopeSelection,
+            pendingDailyCount: pendingDailyTasks.count,
+            pendingOtherCount: pendingNonDailyTasks.count
+        ) {
+            syncLiveActivity()
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    var body: some View {
+        homeContent
         .ignoresSafeArea(edges: showChatInput ? .top : .all)
         .onChange(of: speechRecognizer.isRecording) { _, isRecording in
             if !isRecording {
@@ -218,20 +266,16 @@ struct HomeView2: View {
             Text(shopAlertMessage)
         }
         .sheet(isPresented: $showShopSheet) {
-            CapyShopSheet(
-                dayLabel: shopDayLabel(from: currentShopDayKey),
-                balance: store.stats.coins,
-                items: shopItems,
-                isPurchased: { isPurchased($0) },
-                onBuy: { buyShopItem($0) }
-            )
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
+            shopSheetContent
+        }
+        .sheet(isPresented: $showLiveActivitySheet) {
+            liveActivitySheetContent
         }
         .onAppear {
             balanceDisplay = Double(store.stats.coins)
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
+            syncLiveActivity()
         }
         .onChange(of: store.stats.coins) { _, newValue in
             if !isCollectingCoins {
@@ -239,6 +283,22 @@ struct HomeView2: View {
                     balanceDisplay = Double(newValue)
                 }
             }
+            syncLiveActivity()
+        }
+        .onChange(of: store.tasks) { _, _ in
+            syncLiveActivity()
+        }
+        .onChange(of: liveActivityEnabled) { _, _ in
+            syncLiveActivity()
+        }
+        .onChange(of: liveActivityModeRaw) { _, _ in
+            syncLiveActivity()
+        }
+        .onChange(of: liveActivityGoalScopeRaw) { _, _ in
+            syncLiveActivity()
+        }
+        .onChange(of: isCapySleeping) { _, _ in
+            syncLiveActivity()
         }
         .onReceive(goalCheckInTimer) { _ in
             maybeAskGoalCheckIn()
@@ -247,9 +307,11 @@ struct HomeView2: View {
             refreshCapySleepState()
         }
         .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            refreshDailyShopIfNeeded()
-            refreshCapySleepState()
+            if newPhase == .active {
+                refreshDailyShopIfNeeded()
+                refreshCapySleepState()
+            }
+            syncLiveActivity(isAwayOverride: newPhase != .active)
         }
     }
     
@@ -447,20 +509,39 @@ struct HomeView2: View {
 
             Spacer()
 
-            Button {
-                refreshDailyShopIfNeeded()
-                showShopSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "storefront.fill")
-                    Text("capyshop")
-                        .font(.custom("Gaegu-Regular", size: 20))
+            HStack(spacing: 10) {
+                Button {
+                    showLiveActivitySheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(liveActivityEnabled ? Color.green : Color.gray.opacity(0.5))
+                            .frame(width: 8, height: 8)
+                        Text(liveActivityEnabled ? liveActivityMode.shortLabel : "live")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                    }
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.92))
+                    .clipShape(Capsule())
                 }
-                .foregroundStyle(Color.capyDarkBrown)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.white.opacity(0.92))
-                .clipShape(Capsule())
+
+                Button {
+                    refreshDailyShopIfNeeded()
+                    showShopSheet = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "storefront.fill")
+                        Text("capyshop")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                    }
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.92))
+                    .clipShape(Capsule())
+                }
             }
         }
         .padding(.horizontal, 20)
@@ -692,8 +773,35 @@ struct HomeView2: View {
         Set(purchasedShopItemsCSV.split(separator: ",").map(String.init))
     }
 
+    private var liveActivityMode: CapyLiveActivityMode {
+        get { CapyLiveActivityMode(rawValue: liveActivityModeRaw) ?? .capyCare }
+        set { liveActivityModeRaw = newValue.rawValue }
+    }
+
+    private var liveActivityGoalScope: CapyLiveActivityGoalScope {
+        get { CapyLiveActivityGoalScope(rawValue: liveActivityGoalScopeRaw) ?? .allGoals }
+        set { liveActivityGoalScopeRaw = newValue.rawValue }
+    }
+
     private var pendingTasks: [CapyTask] {
         store.tasks.filter { !$0.isDone }
+    }
+
+    private var pendingDailyTasks: [CapyTask] {
+        pendingTasks.filter { $0.frequency == .daily }
+    }
+
+    private var pendingNonDailyTasks: [CapyTask] {
+        pendingTasks.filter { $0.frequency != .daily }
+    }
+
+    private var liveActivityCandidateTasks: [CapyTask] {
+        switch liveActivityGoalScope {
+        case .allGoals:
+            return pendingDailyTasks + pendingNonDailyTasks
+        case .otherGoalsOnly:
+            return pendingNonDailyTasks
+        }
     }
 
     private func changeFrequency(_ direction: Int) {
@@ -1161,6 +1269,177 @@ struct HomeView2: View {
             return "+1 mood (😁)."
         default:
             return "+1 stat (\(stat))."
+        }
+    }
+
+    private func syncLiveActivity(isAwayOverride: Bool? = nil) {
+        let isAway = isAwayOverride ?? (scenePhase != .active)
+        let snapshot = makeLiveActivitySnapshot(isAway: isAway)
+        liveActivityManager.sync(enabled: liveActivityEnabled, snapshot: snapshot)
+    }
+
+    private func makeLiveActivitySnapshot(isAway: Bool) -> CapyLiveActivitySnapshot {
+        let totalTasks = store.tasks.count
+        let completedTasks = store.tasks.filter { $0.isDone }.count
+        let pendingCount = max(totalTasks - completedTasks, 0)
+        let dailyTotal = store.tasks.filter { $0.frequency == .daily }.count
+        let dailyCompleted = store.tasks.filter { $0.frequency == .daily && $0.isDone }.count
+        let tasksForLiveActivity = liveActivityCandidateTasks
+        let nextTask = tasksForLiveActivity.first
+        let isDailyPriority = nextTask?.frequency == .daily
+        let energyLevel = stats.first(where: { $0.emoji == "🍋" })?.points ?? 3
+        let needsFood = energyLevel <= 2 || store.stats.mood == "sleepy"
+
+        let focusText: String
+        let progressText: String
+        let headline: String
+
+        switch liveActivityMode {
+        case .capyCare:
+            if needsFood {
+                focusText = "Capy needs food soon. Give a quick care boost."
+            } else if let title = nextTask?.title {
+                focusText = "Capy is good. Next goal: \(title)"
+            } else {
+                focusText = "Capy is good and your goal list is clear."
+            }
+
+            progressText = "daily \(dailyCompleted)/\(dailyTotal) • energy \(Int(energyLevel.rounded()))/5"
+
+            if isAway {
+                headline = needsFood ? "away care alert: feed capy" : "away care check: capy is stable"
+            } else if isCapySleeping {
+                headline = "capy is sleeping"
+            } else {
+                headline = needsFood ? "capy care priority: food" : "capy care: all good"
+            }
+
+        case .accountability:
+            if let title = nextTask?.title {
+                focusText = isDailyPriority ? "Daily priority: \(title)" : title
+            } else if liveActivityGoalScope == .otherGoalsOnly {
+                focusText = "No non-daily goals pending."
+            } else {
+                focusText = "All goals complete."
+            }
+
+            progressText = "daily \(dailyCompleted)/\(dailyTotal) • total \(completedTasks)/\(totalTasks)"
+
+            if isAway {
+                headline = pendingCount == 0 ? "away accountability: all clear" : "away accountability: \(pendingCount) goals left"
+            } else if isCapySleeping {
+                headline = "capy is sleeping"
+            } else {
+                headline = "accountability mode"
+            }
+        }
+
+        let trimmedName = store.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return CapyLiveActivitySnapshot(
+            profileName: trimmedName.isEmpty ? "there" : trimmedName,
+            headline: headline,
+            focusText: focusText,
+            progressText: progressText,
+            coins: store.stats.coins,
+            isSleeping: isCapySleeping,
+            mood: store.stats.mood,
+            isAway: isAway,
+            mode: liveActivityMode.rawValue,
+            goalScope: liveActivityGoalScope.rawValue,
+            needsFood: needsFood,
+            isDailyPriority: isDailyPriority
+        )
+    }
+}
+
+private struct LiveActivitySetupSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var isEnabled: Bool
+    @Binding var mode: CapyLiveActivityMode
+    @Binding var goalScope: CapyLiveActivityGoalScope
+    let pendingDailyCount: Int
+    let pendingOtherCount: Int
+    let onApply: () -> Void
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("live activity")
+                    .font(.custom("Gaegu-Regular", size: 32))
+                Text("Sleek lock-screen view with daily priority first.")
+                    .font(.custom("Gaegu-Regular", size: 18))
+                    .foregroundStyle(Color.capyBrown.opacity(0.8))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+
+            Toggle(isOn: $isEnabled) {
+                Text("Enable live activity")
+                    .font(.custom("Gaegu-Regular", size: 22))
+            }
+            .tint(Color.green)
+            .padding(.horizontal, 20)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Mode")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                Picker("Mode", selection: $mode) {
+                    ForEach(CapyLiveActivityMode.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text(mode.subtitle)
+                    .font(.custom("Gaegu-Regular", size: 17))
+                    .foregroundStyle(Color.capyBrown.opacity(0.82))
+            }
+            .padding(.horizontal, 20)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Goals shown after daily priority")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                Picker("Goal scope", selection: $goalScope) {
+                    ForEach(CapyLiveActivityGoalScope.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text(goalScope.subtitle)
+                    .font(.custom("Gaegu-Regular", size: 17))
+                    .foregroundStyle(Color.capyBrown.opacity(0.82))
+            }
+            .padding(.horizontal, 20)
+
+            Text("Pending now: \(pendingDailyCount) daily, \(pendingOtherCount) other goals.")
+                .font(.custom("Gaegu-Regular", size: 18))
+                .foregroundStyle(Color.capyBrown.opacity(0.9))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+
+            Button {
+                let feedback = UINotificationFeedbackGenerator()
+                feedback.notificationOccurred(isEnabled ? .success : .warning)
+                onApply()
+                dismiss()
+            } label: {
+                Text(isEnabled ? "Save and enable" : "Save and disable")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(isEnabled ? Color.capyBlue : Color.gray.opacity(0.55))
+                    .foregroundStyle(.white)
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 20)
+
+            Spacer(minLength: 4)
         }
     }
 }

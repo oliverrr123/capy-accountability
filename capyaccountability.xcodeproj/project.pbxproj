@@ -8,7 +8,32 @@
 
 /* Begin PBXBuildFile section */
 		DA508BB02F335701000CA24E /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */; };
+		F10000012F40000100000001 /* capyaccountabilityLiveActivity.appex in Embed Live Activity */ = {isa = PBXBuildFile; fileRef = F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F10000072F40000100000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA4B7CB52F2C094100877845 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F10000062F40000100000001;
+			remoteInfo = capyaccountabilityLiveActivity;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F10000052F40000100000001 /* Embed Live Activity */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F10000012F40000100000001 /* capyaccountabilityLiveActivity.appex in Embed Live Activity */,
+			);
+			name = "Embed Live Activity";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		1A055F472F328582007DC0A8 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
@@ -30,6 +55,7 @@
 		DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = capyaccountabilityLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -39,6 +65,13 @@
 				Info.plist,
 			);
 			target = DA4B7CBC2F2C094100877845 /* capyaccountability */;
+		};
+		F100000E2F40000100000001 /* Exceptions for "capyaccountabilityLiveActivity" folder in "capyaccountabilityLiveActivity" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F10000062F40000100000001 /* capyaccountabilityLiveActivity */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -56,10 +89,25 @@
 			path = capyaccountability;
 			sourceTree = "<group>";
 		};
+		F10000032F40000100000001 /* capyaccountabilityLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F100000E2F40000100000001 /* Exceptions for "capyaccountabilityLiveActivity" folder in "capyaccountabilityLiveActivity" target */,
+			);
+			path = capyaccountabilityLiveActivity;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		DA4B7CBA2F2C094100877845 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000042F40000100000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -173,6 +221,7 @@
 				DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */,
 				1ABFC51D2F311A6E002AEF13 /* Resources */,
 				DA4B7CBF2F2C094100877845 /* capyaccountability */,
+				F10000032F40000100000001 /* capyaccountabilityLiveActivity */,
 				DA4B7CBE2F2C094100877845 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -181,6 +230,7 @@
 			isa = PBXGroup;
 			children = (
 				DA4B7CBD2F2C094100877845 /* capyaccountability.app */,
+				F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -216,10 +266,12 @@
 				DA4B7CB92F2C094100877845 /* Sources */,
 				DA4B7CBA2F2C094100877845 /* Frameworks */,
 				DA4B7CBB2F2C094100877845 /* Resources */,
+				F10000052F40000100000001 /* Embed Live Activity */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F10000082F40000100000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				1ABFC51D2F311A6E002AEF13 /* Resources */,
@@ -232,6 +284,28 @@
 			productReference = DA4B7CBD2F2C094100877845 /* capyaccountability.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F10000062F40000100000001 /* capyaccountabilityLiveActivity */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F100000D2F40000100000001 /* Build configuration list for PBXNativeTarget "capyaccountabilityLiveActivity" */;
+			buildPhases = (
+				F100000A2F40000100000001 /* Sources */,
+				F10000042F40000100000001 /* Frameworks */,
+				F10000092F40000100000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F10000032F40000100000001 /* capyaccountabilityLiveActivity */,
+			);
+			name = capyaccountabilityLiveActivity;
+			packageProductDependencies = (
+			);
+			productName = capyaccountabilityLiveActivity;
+			productReference = F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -243,6 +317,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					DA4B7CBC2F2C094100877845 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					F10000062F40000100000001 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -332,6 +409,7 @@
 			projectRoot = "";
 			targets = (
 				DA4B7CBC2F2C094100877845 /* capyaccountability */,
+				F10000062F40000100000001 /* capyaccountabilityLiveActivity */,
 			);
 		};
 /* End PBXProject section */
@@ -345,6 +423,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F10000092F40000100000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -355,7 +440,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F100000A2F40000100000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F10000082F40000100000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F10000062F40000100000001 /* capyaccountabilityLiveActivity */;
+			targetProxy = F10000072F40000100000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		DA4B7CC62F2C094100877845 /* Debug */ = {
@@ -487,7 +587,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -512,7 +612,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v298;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -538,7 +638,7 @@
 				CODE_SIGN_ENTITLEMENTS = capyaccountability/capyaccountability.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 7R9434C69C;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -561,7 +661,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v2;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v298;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -575,6 +675,70 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 				XROS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		F100000B2F40000100000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = capyaccountabilityLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v298.liveactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		F100000C2F40000100000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7S42Q3UZ3S;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = capyaccountabilityLiveActivity/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = yzde.capyaccountabilities.v298.liveactivity;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};
@@ -595,6 +759,15 @@
 			buildConfigurations = (
 				DA4B7CC92F2C094100877845 /* Debug */,
 				DA4B7CCA2F2C094100877845 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F100000D2F40000100000001 /* Build configuration list for PBXNativeTarget "capyaccountabilityLiveActivity" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F100000B2F40000100000001 /* Debug */,
+				F100000C2F40000100000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
