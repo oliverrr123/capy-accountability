@@ -118,6 +118,9 @@ struct CircularTranscriptRing: View {
 
     private let visibleCharacterCount = 42
     private let fallbackText = " LISTENING • "
+    @State private var popProgress: CGFloat = 0
+    @State private var isSpinning = false
+    private let rotationDuration = 12.0
 
     private var ringCharacters: [Character] {
         let cleaned = transcript
@@ -138,17 +141,36 @@ struct CircularTranscriptRing: View {
     var body: some View {
         let chars = ringCharacters
         let step = 360.0 / Double(chars.count)
+        let currentRadius = (ringDiameter / 2) * (0.16 + 0.84 * popProgress)
 
         ZStack {
             ForEach(Array(chars.enumerated()), id: \.offset) { index, character in
                 Text(String(character))
                     .font(.custom("Gaegu-Bold", size: 9))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .offset(y: -(ringDiameter / 2))
+                    .foregroundStyle(.white.opacity(0.98))
+                    .offset(y: -currentRadius)
                     .rotationEffect(.degrees(Double(index) * step))
             }
         }
         .frame(width: ringDiameter + 18, height: ringDiameter + 18)
+        .rotationEffect(.degrees(isSpinning ? 360 : 0))
+        .scaleEffect(0.82 + 0.18 * popProgress)
+        .opacity(popProgress)
+        .blur(radius: (1 - popProgress) * 1.6)
+        .onAppear {
+            popProgress = 0
+            isSpinning = false
+            withAnimation(.spring(response: 0.52, dampingFraction: 0.76)) {
+                popProgress = 1
+            }
+            withAnimation(.linear(duration: rotationDuration).repeatForever(autoreverses: false)) {
+                isSpinning = true
+            }
+        }
+        .onDisappear {
+            popProgress = 0
+            isSpinning = false
+        }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
@@ -506,7 +528,8 @@ struct HomeView2: View {
                             .foregroundStyle(.white)
                     }
                 }
-                .overlay {
+                .frame(width: 50, height: 50)
+                .background {
                     if speechRecognizer.isRecording {
                         CircularTranscriptRing(transcript: speechRecognizer.transcript)
                     }
