@@ -22,6 +22,10 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Use the microphone to chat with the capybara </string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Resources/Fonts/CherryBombOne-Regular.ttf</string>

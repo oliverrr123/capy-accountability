@@ -5,3 +5,5 @@ pixelize-images.py
 Secrets.xcconfig
 Secrets.xcconfig
 capyaccountability.xcodeproj/project.xcworkspace/xcuserdata/yazidears.xcuserdatad/UserInterfaceState.xcuserstate
+/.derivedData/
+/DerivedData/
