@@ -5,16 +5,6 @@ import Combine
 import SwiftUI
 import Speech
 
-//struct TaskItem: Identifiable {
-//    let id = UUID()
-//    var text: String
-//    var isDone: Bool
-//    var timeframe: Timeframe
-//
-//    var coinReward: Int
-//    var statReward: String?
-//}
-
 struct StatItem: Identifiable {
     let id = UUID()
     var emoji: String
@@ -55,15 +45,6 @@ extension CapyShopItem {
         CapyShopItem(id: "cozy_lantern", emoji: "🏮", title: "Cozy Lantern", description: "Night-time ambience for your capy’s space.", cost: 38, statReward: nil)
     ]
 }
-
-//enum Timeframe: String, CaseIterable {
-//    case daily = "Daily"
-//    case week = "This week"
-//    case month = "This month"
-//    case year = "This year"
-//    case decade = "This decade"
-//    case allTime = "All time"
-//}
 
 enum ThinkingState {
     case none
@@ -118,9 +99,7 @@ struct SoundBarsSmall: View {
     }
 }
 
-
 struct HomeView2: View {
-//    @ObservedObject var viewModel: TaskViewModel
     @ObservedObject var store: CapyStore
 
     @Environment(\.scenePhase) private var scenePhase
@@ -141,8 +120,6 @@ struct HomeView2: View {
         StatItem(emoji: "🛁", points: 3.0),
         StatItem(emoji: "😁", points: 2.0)
     ]
-
-//    @State private var balance = 426.0
     
     @State private var balanceDisplay: Double = 0.0
     @State private var flyingCoins: [FlyingCoin] = []
@@ -170,7 +147,6 @@ struct HomeView2: View {
     
     @State private var thinkingState: ThinkingState = .none
     
-//    @State private var capyIsThinking = false
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
 
@@ -225,7 +201,6 @@ struct HomeView2: View {
             TextField("Goal text...", text: $editTaskText)
             Button("Save") {
                 if let task = taskToEdit, !editTaskText.isEmpty {
-//                    saveTaskEdit(task, newText: editTaskText)
                     store.deleteTask(task)
                     store.addTask(title: editTaskText, frequency: selectedFrequency)
                 }
@@ -259,9 +234,6 @@ struct HomeView2: View {
             refreshCapySleepState()
         }
         .onChange(of: store.stats.coins) { _, newValue in
-//            if abs(balanceDisplay - Double(newValue)) > 0.1 {
-//                withAnimation { balanceDisplay = Double(newValue) }
-//            }
             if !isCollectingCoins {
                 withAnimation {
                     balanceDisplay = Double(newValue)
@@ -279,7 +251,6 @@ struct HomeView2: View {
             refreshDailyShopIfNeeded()
             refreshCapySleepState()
         }
-//        .ignoresSafeArea() //  I need this to be here when the chat is not open, and when it's open, I need it to not be here. How do I do that
     }
     
     private func gameContentLayer(geometry: GeometryProxy) -> some View {
@@ -292,9 +263,7 @@ struct HomeView2: View {
             capyPart
         }
         .padding(.top, geometry.safeAreaInsets.top + 24)
-//        .padding(.bottom, showChatInput ? 10 : 0)
         .frame(width: geometry.size.width)
-//        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
     
     private var chatInterfaceLayer: some View {
@@ -452,9 +421,6 @@ struct HomeView2: View {
                 .frame(width: 24, height: 24)
                 .modifier(ExplodingCoinModifier(coin: coin) {
                     flyingCoins.removeAll(where: { $0.id == coin.id })
-//                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-//                                balanceDisplay += 1
-//                            }
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                         balanceDisplay += Double(coin.value)
                     }
@@ -944,9 +910,6 @@ struct HomeView2: View {
             shopAlertMessage = "not enough coins for \(item.title.lowercased())."
             showShopAlert = true
         }
-//        withAnimation {
-//            balance -= Double(item.cost)
-//        }
     }
 
     private func maybeAskGoalCheckIn(force: Bool = false) {
@@ -1357,6 +1320,5 @@ struct ExplodingCoinModifier: ViewModifier {
 }
 
 #Preview {
-//    InitialView()
     HomeView2(store: CapyStore())
 }
