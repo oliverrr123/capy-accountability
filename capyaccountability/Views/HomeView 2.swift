@@ -295,8 +295,9 @@ struct HomeView2: View {
         .presentationDragIndicator(.hidden)
     }
 
-    private var liveActivitySheetContent: some View {
-        LiveActivitySetupSheet(
+    private var settingsSheetContent: some View {
+        SettingsSheet(
+            userName: $userName,
             isEnabled: $liveActivityEnabled,
             mode: liveActivityModeSelection,
             goalScope: liveActivityGoalScopeSelection,
@@ -366,7 +367,7 @@ struct HomeView2: View {
             shopSheetContent
         }
         .sheet(isPresented: $showLiveActivitySheet) {
-            liveActivitySheetContent
+            settingsSheetContent
         }
         .onAppear {
             balanceDisplay = Double(store.stats.coins)
@@ -633,14 +634,15 @@ struct HomeView2: View {
                     showLiveActivitySheet = true
                 } label: {
                     HStack(spacing: 6) {
-                        Circle()
-                            .fill(liveActivityEnabled ? Color.green : Color.gray.opacity(0.5))
-                            .frame(width: 8, height: 8)
-                        Text(liveActivityEnabled ? liveActivityMode.shortLabel : "live")
-                            .font(.custom("Gaegu-Regular", size: 20))
+//                        Circle()
+//                            .fill(liveActivityEnabled ? Color.green : Color.gray.opacity(0.5))
+//                            .frame(width: 8, height: 8)
+//                        Text(liveActivityEnabled ? liveActivityMode.shortLabel : "live")
+//                            .font(.custom("Gaegu-Regular", size: 20))
+                        Image(systemName: "gearshape.fill")
                     }
                     .foregroundStyle(Color.capyDarkBrown)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 8)
                     .background(.white.opacity(0.92))
                     .clipShape(Capsule())
@@ -718,6 +720,8 @@ struct HomeView2: View {
                                             .fixedSize(horizontal: false, vertical: true)
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                     }
+                                    .padding(.vertical, 2)
+                                    .contentShape(Rectangle())
                                     .onTapGesture(coordinateSpace: .global) { location in
                                         toggleTask(task, at: location)
                                     }
@@ -1501,95 +1505,207 @@ struct HomeView2: View {
     }
 }
 
-private struct LiveActivitySetupSheet: View {
+private struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
+    @Binding var userName: String
+    
     @Binding var isEnabled: Bool
     @Binding var mode: CapyLiveActivityMode
     @Binding var goalScope: CapyLiveActivityGoalScope
+    
     let pendingDailyCount: Int
     let pendingOtherCount: Int
     let onApply: () -> Void
+    
+//    init(isEnabled: Binding<Bool>,
+//         mode: Binding<CapyLiveActivityMode>,
+//         goalScope: Binding<CapyLiveActivityGoalScope>,
+//         pendingDailyCount: Int,
+//         pendingOtherCount: Int,
+//         onApply: @escaping () -> Void) {
+//        
+//        self._isEnabled = isEnabled
+//        self._mode = mode
+//        self._goalScope = goalScope
+//        self.pendingDailyCount = pendingDailyCount
+//        self.pendingOtherCount = pendingOtherCount
+//        self.onApply = onApply
+//        
+//        let font = UIFont(name: "Gaegu-Regular", size: 18) ?? UIFont.systemFont(ofSize: 18)
+//        let attributes: [NSAttributedString.Key: Any] = [
+//            .font: font,
+//            .foregroundColor: Color.capyDarkBrown
+//        ]
+//        UISegmentedControl.appearance().setTitleTextAttributes(attributes, for: .normal)
+//        UISegmentedControl.appearance().setTitleTextAttributes(attributes, for: .selected)
+//    }
 
     var body: some View {
-        VStack(spacing: 14) {
-            Capsule()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 60, height: 6)
-                .padding(.top, 16)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("live activity")
-                    .font(.custom("Gaegu-Regular", size: 32))
-                Text("Sleek lock-screen view with daily priority first.")
-                    .font(.custom("Gaegu-Regular", size: 18))
-                    .foregroundStyle(Color.capyBrown.opacity(0.8))
+        VStack(spacing: 24) {
+            dragIndicator
+            titleHeader
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 28) {
+                    profileSection
+                    Divider().padding(.horizontal, 20)
+                    liveActivitySection
+                }
+                .padding(.bottom, 20)
             }
+                    
+            saveButton
+        }
+        .background(Color.white)
+    }
+    
+    private var dragIndicator: some View {
+        Capsule()
+            .fill(Color.gray.opacity(0.3))
+            .frame(width: 60, height: 6)
+            .padding(.top, 16)
+    }
+    
+    private var titleHeader: some View {
+        Text("settings")
+            .font(.custom("Gaegu-Regular", size: 32))
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 20)
-
-            Toggle(isOn: $isEnabled) {
-                Text("Enable live activity")
-                    .font(.custom("Gaegu-Regular", size: 22))
+    }
+    
+    private var profileSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("your name")
+                .font(.custom("Gaegu-Regular", size: 24))
+                .foregroundStyle(Color.capyDarkBrown)
+            
+            TextField("Enter name", text: $userName)
+                .font(.custom("Gaegu-Regular", size: 22))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.gray.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .padding(.horizontal, 20)
+    }
+    
+    private var liveActivitySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("live activity")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+                Spacer()
+                Toggle("", isOn: $isEnabled)
+                    .tint(Color.green)
+                    .labelsHidden()
+                //                            Text("Sleek lock-screen view with daily priority first.")
+                //                                .font(.custom("Gaegu-Regular", size: 18))
+                //                                .foregroundStyle(Color.capyBrown.opacity(0.8))
             }
-            .tint(Color.green)
-            .padding(.horizontal, 20)
-
-            VStack(alignment: .leading, spacing: 10) {
+            
+            Text("Show your goals on the lock screen.")
+                .font(.custom("Gaegu-Regular", size: 20))
+                .foregroundStyle(Color.capyBrown.opacity(0.8))
+            
+            if isEnabled {
+                liveActivityPickers
+            }
+        }
+        .padding(.horizontal, 20)
+        .opacity(isEnabled ? 1.0 : 0.6) // !!!
+        .animation(.spring, value: isEnabled)
+    }
+    
+    private var liveActivityPickers: some View {
+        VStack(alignment: .leading, spacing: 20) { // !!!
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Mode")
                     .font(.custom("Gaegu-Regular", size: 20))
-                Picker("Mode", selection: $mode) {
+                    .foregroundStyle(Color.capyBrown)
+                
+                
+                HStack(spacing: 0) {
                     ForEach(CapyLiveActivityMode.allCases, id: \.self) { option in
-                        Text(option.title).tag(option)
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { mode = option }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Text(option.title)
+                                .font(.custom("Gaegu-Regular", size: 18))
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(mode == option ? Color.white : Color.clear)
+                                .foregroundStyle(Color.capyDarkBrown)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .shadow(color: mode == option ? .black.opacity(0.1) : .clear, radius: 2, y: 1)
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
+                .padding(4)
+                .background(Color.gray.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                
                 Text(mode.subtitle)
-                    .font(.custom("Gaegu-Regular", size: 17))
-                    .foregroundStyle(Color.capyBrown.opacity(0.82))
+                    .font(.custom("Gaegu-Regular", size: 16))
+                    .foregroundStyle(Color.capyBrown.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
+                
             }
-            .padding(.horizontal, 20)
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Goals shown after daily priority")
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Goal scope")
                     .font(.custom("Gaegu-Regular", size: 20))
-                Picker("Goal scope", selection: $goalScope) {
+                    .foregroundStyle(Color.capyBrown)
+                
+                HStack(spacing: 0) {
                     ForEach(CapyLiveActivityGoalScope.allCases, id: \.self) { option in
-                        Text(option.title).tag(option)
+                        Button {
+                            withAnimation(.spring(response: 0.3)) { goalScope = option }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            Text(option.title)
+                                .font(.custom("Gaegu-Regular", size: 18))
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(goalScope == option ? Color.white : Color.clear)
+                                .foregroundStyle(Color.capyDarkBrown)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .shadow(color: goalScope == option ? .black.opacity(0.1) :.clear, radius: 2, y: 1)
+                        }
                     }
                 }
-                .pickerStyle(.segmented)
-                Text(goalScope.subtitle)
-                    .font(.custom("Gaegu-Regular", size: 17))
-                    .foregroundStyle(Color.capyBrown.opacity(0.82))
+                .padding(4)
+                .background(Color.gray.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.horizontal, 20)
-
-            Text("Pending now: \(pendingDailyCount) daily, \(pendingOtherCount) other goals.")
-                .font(.custom("Gaegu-Regular", size: 18))
-                .foregroundStyle(Color.capyBrown.opacity(0.9))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-
-            Button {
-                let feedback = UINotificationFeedbackGenerator()
-                feedback.notificationOccurred(isEnabled ? .success : .warning)
-                onApply()
-                dismiss()
-            } label: {
-                Text(isEnabled ? "Save and enable" : "Save and disable")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(isEnabled ? Color.capyBlue : Color.gray.opacity(0.55))
-                    .foregroundStyle(.white)
-                    .clipShape(Capsule())
-            }
-            .padding(.horizontal, 20)
-
-            Spacer(minLength: 4)
+            Text("Pending: \(pendingDailyCount) daily, \(pendingOtherCount) others.")
+                .font(.custom("Gaegu-Regular", size: 16))
+                .foregroundStyle(Color.capyBrown.opacity(0.6))
+                .padding(.top, 4)
         }
     }
+    
+    private var saveButton: some View {
+        Button {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.notificationOccurred(.success)
+            onApply()
+            dismiss()
+        } label: {
+            Text("Save Changes")
+                .font(.custom("Gaegu-Regular", size: 24))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.capyBlue)
+                .foregroundStyle(.white)
+                .clipShape(Capsule())
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 10)
+    }
+    
 }
 
 private struct CapyShopSheet: View {
