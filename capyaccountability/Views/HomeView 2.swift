@@ -263,7 +263,7 @@ struct HomeView2: View {
                 capyPart
                     .frame(width: UIScreen.main.bounds.width)
                     .offset(y: (keyboardHeight > 0 && isChatFocused) ? -(keyboardHeight-20) : 0)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
+                    .animation(.easeInOut(duration: 0.5), value: keyboardHeight)
                     .zIndex(10)
                     .onTapGesture {
                         if showChatInput {
@@ -437,7 +437,7 @@ struct HomeView2: View {
             }
         }
         .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight : (showChatInput ? 0 : 30))
-        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: keyboardHeight)
+        .animation(.easeInOut(duration: 0.5), value: keyboardHeight)
     }
     
     private var chatInputBar: some View {
@@ -483,7 +483,7 @@ struct HomeView2: View {
     }
     
     private var statsAndChatButton: some View {
-        HStack(alignment: .bottom, spacing: 12) {
+        HStack(alignment: .bottom, spacing: 0) {
             VStack(spacing: 12) {
                 ForEach(stats) { stat in
                     VStack(spacing: 0) {
@@ -499,61 +499,69 @@ struct HomeView2: View {
             .padding(.horizontal, 8)
             .background(.white.opacity(0.9))
             .clipShape(Capsule())
+            .padding(.leading, 20)
             
             Spacer()
             
-            Button(action: handleMicTap) {
-                ZStack {
-                    Circle()
-                        .fill(Color.capyBlue)
-                        .frame(width: 50, height: 50)
-                        .shadow(radius: 4)
-                    
-                    if speechRecognizer.isRecording {
-//                        Image(systemName: "waveform")
-//                            .font(.system(size: 24))
-//                            .foregroundStyle(.white)
-                        SoundBarsSmall(level: CGFloat(speechRecognizer.soundLevel))
-                    } else if thinkingState == .mic {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 22))
-                            .foregroundStyle(.white)
+            HStack(spacing: -20) {
+                
+                Button(action: handleMicTap) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.capyBlue)
+                            .frame(width: 50, height: 50)
+                            .shadow(radius: 4)
+                        
+                        if speechRecognizer.isRecording {
+                            //                        Image(systemName: "waveform")
+                            //                            .font(.system(size: 24))
+                            //                            .foregroundStyle(.white)
+                            SoundBarsSmall(level: CGFloat(speechRecognizer.soundLevel))
+                        } else if thinkingState == .mic {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 50, height: 50)
+                    .background {
+                        if speechRecognizer.isRecording {
+                            CircularTranscriptRing(transcript: speechRecognizer.transcript)
+                        }
                     }
                 }
-                .frame(width: 50, height: 50)
-                .background {
-                    if speechRecognizer.isRecording {
-                        CircularTranscriptRing(transcript: speechRecognizer.transcript)
+                .frame(width: 80, height: 80, alignment: .bottom)
+                .contentShape(Rectangle())
+                .disabled(isCapySleeping || thinkingState != .none)
+                .opacity(isCapySleeping ? 0.6 : 1.0)
+                .accessibilityLabel(speechRecognizer.isRecording ? "Stop Dictate" : "Dictate")
+                
+                Button(action: openChat) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.capyBlue)
+                            .frame(width: 50, height: 50)
+                            .shadow(radius: 4)
+                        if thinkingState == .text {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "bubble.right.fill")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.white)
+                        }
                     }
                 }
+                .frame(width: 80, height: 80, alignment: .bottom)
+                .contentShape(Rectangle())
+                .disabled(isCapySleeping || thinkingState != .none)
+                .opacity(isCapySleeping ? 0.6 : 1.0)
             }
-            .disabled(isCapySleeping || thinkingState != .none)
-            .opacity(isCapySleeping ? 0.6 : 1.0)
-            .accessibilityLabel(speechRecognizer.isRecording ? "Stop Dictate" : "Dictate")
-            
-            Button(action: openChat) {
-                ZStack {
-                    Circle()
-                        .fill(Color.capyBlue)
-                        .frame(width: 50, height: 50)
-                        .shadow(radius: 4)
-                    if thinkingState == .text {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "bubble.right.fill")
-                            .font(.system(size: 24))
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
-            .disabled(isCapySleeping || thinkingState != .none)
-            .opacity(isCapySleeping ? 0.6 : 1.0)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 8)
 //        .padding(.bottom, 30)
 //        .transition(.opacity)
     }
