@@ -728,19 +728,24 @@ struct HomeView2: View {
                     .contentTransition(.numericText(value: balanceDisplay))
 
                 if comboStreak >= 2 {
-                    Text("🔥 x\(comboStreak)")
-                        .font(.custom("Gaegu-Regular", size: 20))
-                        .foregroundStyle(Color.capyDarkBrown)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(.white.opacity(0.92))
-                        .clipShape(Capsule())
-                        .scaleEffect(comboBadgeScale)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: comboBadgeScale)
-                        .transition(.scale.combined(with: .opacity))
+                    HStack(spacing: 0) {
+                        Text("🔥")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                            .foregroundStyle(Color.capyDarkBrown)
+                        Text("x\(comboStreak)")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyDarkBrown)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.92))
+                    .clipShape(Capsule())
+                    .scaleEffect(comboBadgeScale)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.72), value: comboBadgeScale)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
-
+            
             Spacer()
 
             HStack(spacing: 10) {
