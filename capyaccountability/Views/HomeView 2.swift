@@ -209,6 +209,10 @@ struct HomeView2: View {
     @State private var micTapped: Bool = false
     
     @State private var isCollectingCoins = false
+    @State private var comboStreak = 0
+    @State private var lastComboCompletionDate = Date.distantPast
+    @State private var comboResetGeneration = 0
+    @State private var comboBadgeScale: CGFloat = 1.0
 
     @State private var taskToEdit: CapyTask?
     @State private var showActionSheet = false
@@ -237,6 +241,7 @@ struct HomeView2: View {
 
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+    private let comboWindow: TimeInterval = 90
 
     private var liveActivityModeSelection: Binding<CapyLiveActivityMode> {
         Binding(
@@ -721,6 +726,19 @@ struct HomeView2: View {
                     .font(Font.custom("Gaegu-Regular", size: 28))
                     .foregroundStyle(.white)
                     .contentTransition(.numericText(value: balanceDisplay))
+
+                if comboStreak >= 2 {
+                    Text("🔥 x\(comboStreak)")
+                        .font(.custom("Gaegu-Regular", size: 20))
+                        .foregroundStyle(Color.capyDarkBrown)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(.white.opacity(0.92))
+                        .clipShape(Capsule())
+                        .scaleEffect(comboBadgeScale)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.72), value: comboBadgeScale)
+                        .transition(.scale.combined(with: .opacity))
+                }
             }
 
             Spacer()
@@ -1063,10 +1081,16 @@ struct HomeView2: View {
             
             let rewardAmount = task.coinReward
             let rewardStat = task.statReward
+            let comboResult = registerComboCompletion()
+            let totalReward = rewardAmount + comboResult.bonus
             
-            triggerReward(at: location, amount: rewardAmount)
+            triggerReward(at: location, amount: totalReward)
             if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
-            capyText = "nice work bro, you finished \"\(task.title)\"."
+            if comboResult.bonus > 0 {
+                capyText = "combo x\(comboResult.streak)! +\(comboResult.bonus) bonus coins. you finished \"\(task.title)\"."
+            } else {
+                capyText = "nice work bro, you finished \"\(task.title)\"."
+            }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 isCollectingCoins = false
@@ -1076,6 +1100,7 @@ struct HomeView2: View {
             }
         } else {
             store.toggleTask(task)
+            resetCombo()
             
             let rewardStat = task.statReward
             let impact = UIImpactFeedbackGenerator(style: .medium)
@@ -1101,6 +1126,63 @@ struct HomeView2: View {
 
         playSound(name: "coins", fileExtension: "mp3")
         spawnCoins(from: point, count: amount)
+    }
+
+    private func registerComboCompletion() -> (streak: Int, bonus: Int) {
+        let now = Date()
+        let isWithinComboWindow = now.timeIntervalSince(lastComboCompletionDate) <= comboWindow
+
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            comboStreak = isWithinComboWindow ? comboStreak + 1 : 1
+        }
+        lastComboCompletionDate = now
+        scheduleComboReset()
+
+        let bonus = comboBonus(for: comboStreak)
+        if bonus > 0 {
+            store.awardBonusCoins(bonus)
+            animateComboBadge()
+        }
+        return (comboStreak, bonus)
+    }
+
+    private func comboBonus(for streak: Int) -> Int {
+        guard streak >= 2 else { return 0 }
+        let steps = min(streak - 1, 5)
+        return steps * 4
+    }
+
+    private func animateComboBadge() {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.62)) {
+            comboBadgeScale = 1.22
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.72)) {
+                comboBadgeScale = 1.0
+            }
+        }
+    }
+
+    private func scheduleComboReset() {
+        comboResetGeneration += 1
+        let generation = comboResetGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + comboWindow) {
+            guard generation == comboResetGeneration else { return }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+                comboStreak = 0
+                comboBadgeScale = 1.0
+            }
+            lastComboCompletionDate = .distantPast
+        }
+    }
+
+    private func resetCombo() {
+        comboResetGeneration += 1
+        lastComboCompletionDate = .distantPast
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+            comboStreak = 0
+            comboBadgeScale = 1.0
+        }
     }
 
     private func playSound(name: String, fileExtension: String) {
