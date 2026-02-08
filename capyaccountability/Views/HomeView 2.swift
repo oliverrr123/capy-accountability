@@ -1514,6 +1514,8 @@ private struct SettingsSheet: View {
     @Binding var mode: CapyLiveActivityMode
     @Binding var goalScope: CapyLiveActivityGoalScope
     
+    @Namespace private var animationNamespace
+    
     let pendingDailyCount: Int
     let pendingOtherCount: Int
     let onApply: () -> Void
@@ -1620,70 +1622,103 @@ private struct SettingsSheet: View {
     
     private var liveActivityPickers: some View {
         VStack(alignment: .leading, spacing: 20) { // !!!
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Mode")
-                    .font(.custom("Gaegu-Regular", size: 20))
-                    .foregroundStyle(Color.capyBrown)
-                
-                
-                HStack(spacing: 0) {
-                    ForEach(CapyLiveActivityMode.allCases, id: \.self) { option in
-                        Button {
-                            withAnimation(.spring(response: 0.3)) { mode = option }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        } label: {
-                            Text(option.title)
-                                .font(.custom("Gaegu-Regular", size: 18))
-                                .padding(.vertical, 8)
-                                .frame(maxWidth: .infinity)
-                                .background(mode == option ? Color.white : Color.clear)
-                                .foregroundStyle(Color.capyDarkBrown)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .shadow(color: mode == option ? .black.opacity(0.1) : .clear, radius: 2, y: 1)
-                        }
-                    }
-                }
-                .padding(4)
-                .background(Color.gray.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                
-                Text(mode.subtitle)
-                    .font(.custom("Gaegu-Regular", size: 16))
-                    .foregroundStyle(Color.capyBrown.opacity(0.7))
-                    .fixedSize(horizontal: false, vertical: true)
-                
-            }
+            liveActivityPickerMode
+            liveActivityPickerGoalScope
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Goal scope")
-                    .font(.custom("Gaegu-Regular", size: 20))
-                    .foregroundStyle(Color.capyBrown)
-                
-                HStack(spacing: 0) {
-                    ForEach(CapyLiveActivityGoalScope.allCases, id: \.self) { option in
-                        Button {
-                            withAnimation(.spring(response: 0.3)) { goalScope = option }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        } label: {
-                            Text(option.title)
-                                .font(.custom("Gaegu-Regular", size: 18))
-                                .padding(.vertical, 8)
-                                .frame(maxWidth: .infinity)
-                                .background(goalScope == option ? Color.white : Color.clear)
-                                .foregroundStyle(Color.capyDarkBrown)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .shadow(color: goalScope == option ? .black.opacity(0.1) :.clear, radius: 2, y: 1)
-                        }
-                    }
-                }
-                .padding(4)
-                .background(Color.gray.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
             Text("Pending: \(pendingDailyCount) daily, \(pendingOtherCount) others.")
                 .font(.custom("Gaegu-Regular", size: 16))
                 .foregroundStyle(Color.capyBrown.opacity(0.6))
                 .padding(.top, 4)
+        }
+    }
+    
+    private var liveActivityPickerMode: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Mode")
+                .font(.custom("Gaegu-Regular", size: 20))
+                .foregroundStyle(Color.capyBrown)
+            
+            
+            HStack(spacing: 0) {
+                ForEach(CapyLiveActivityMode.allCases, id: \.self) { option in
+                    Button {
+                        mode = option
+//                            withAnimation(.snappy) { mode = option }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Text(option.title)
+                            .font(.custom("Gaegu-Regular", size: 18))
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background{
+                                if mode == option {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white)
+                                        .matchedGeometryEffect(id: "modeBackground", in: animationNamespace)
+                                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                                }
+                            }
+                            .foregroundStyle(Color.capyDarkBrown)
+//                                .clipShape(RoundedRectangle(cornerRadius: 8))
+//                                .shadow(color: mode == option ? .black.opacity(0.1) : .clear, radius: 2, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(Color.gray.opacity(0.15))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .animation(.snappy, value: mode)
+            
+            Text(mode.subtitle)
+                .font(.custom("Gaegu-Regular", size: 16))
+                .foregroundStyle(Color.capyBrown.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
+            
+        }
+    }
+    
+    private var liveActivityPickerGoalScope: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Goal scope")
+                .font(.custom("Gaegu-Regular", size: 20))
+                .foregroundStyle(Color.capyBrown)
+            
+            HStack(spacing: 0) {
+                ForEach(CapyLiveActivityGoalScope.allCases, id: \.self) { option in
+                    Button {
+//                            withAnimation(.spring(response: 0.3)) { goalScope = option }
+                        goalScope = option
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Text(option.title)
+                            .font(.custom("Gaegu-Regular", size: 18))
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background{
+                                if goalScope == option {
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(Color.white)
+                                        .matchedGeometryEffect(id: "goalScopeBackground", in: animationNamespace)
+                                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                                }
+                            }
+                            .foregroundStyle(Color.capyDarkBrown)
+//                                .clipShape(RoundedRectangle(cornerRadius: 8))
+//                                .shadow(color: goalScope == option ? .black.opacity(0.1) :.clear, radius: 2, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(4)
+            .background(Color.gray.opacity(0.15))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .animation(.snappy, value: goalScope)
+            
+            Text(goalScope.subtitle)
+                .font(Font.custom("Gaegu-Regular", size: 16))
+                .foregroundStyle(Color.capyBrown.opacity(0.7))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
     
