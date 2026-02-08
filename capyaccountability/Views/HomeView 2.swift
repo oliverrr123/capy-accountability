@@ -294,14 +294,21 @@ struct HomeView2: View {
             .overlay(coinsLayer)
         }
     }
-
+    
     private var shopSheetContent: some View {
         CapyShopSheet(
             dayLabel: shopDayLabel(from: currentShopDayKey),
             balance: store.stats.coins,
             items: shopItems,
             isPurchased: { isPurchased($0) },
-            onBuy: { buyShopItem($0) }
+            onBuy: { buyShopItem($0) },
+            onReset: {
+                purchasedShopItemsCSV = ""
+                shopLastDayKey = ""
+                store.awardBonusCoins(100)
+                refreshDailyShopIfNeeded(force: true)
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
         )
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)
@@ -536,24 +543,6 @@ struct HomeView2: View {
             Spacer()
             
             HStack(spacing: -20) {
-                
-//                Button{
-//                    HapticEngine.shared.playSwell()
-//                } label: {
-//                    ZStack {
-//                        Circle()
-//                            .fill(Color.capyBlue)
-//                            .frame(width: 50, height: 50)
-//                            .shadow(radius: 4)
-//                        
-//                        Text("a")
-//                            .font(.custom("Gaegu-Regular", size: 22))
-//                            .foregroundStyle(.white)
-//                    }
-//                    .frame(width: 50, height: 50)
-//                }
-//                .frame(width: 80, height: 80, alignment: .bottom)
-//                .contentShape(Rectangle())
 //                
 //                Button{
 //                    HapticEngine.shared.playCoinShower()
@@ -682,8 +671,6 @@ struct HomeView2: View {
             }
         }
         .padding(.horizontal, 8)
-//        .padding(.bottom, 30)
-//        .transition(.opacity)
     }
     
     private var backGroundLayer: some View {
@@ -728,7 +715,7 @@ struct HomeView2: View {
                 })
         }
     }
-
+    
     private var topBar: some View {
         HStack {
             HStack {
@@ -963,15 +950,15 @@ struct HomeView2: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
-
+            
             Spacer()
-
+            
             Text(selectedFrequency.rawValue)
                 .font(.custom("Gaegu-Regular", size: 24))
                 .foregroundStyle(.white)
-
+            
             Spacer()
-
+            
             Button(action: { changeFrequency(1) }) {
                 Image(systemName: "chevron.right")
                     .font(Font.system(size: 16, weight: .bold))
@@ -1408,8 +1395,8 @@ struct HomeView2: View {
             
             let effectText = itemEffectText(for: item)
             capyText = "thanks bro, you got me \(item.title.lowercased()). \(effectText)"
-            shopAlertMessage = "bought \(item.title.lowercased()). \(effectText) capyshop refreshes at midnight."
-            showShopAlert = true
+//            shopAlertMessage = "bought \(item.title.lowercased()). \(effectText) capyshop refreshes at midnight."
+//            showShopAlert = true
         } else {
             shopAlertMessage = "not enough coins for \(item.title.lowercased())."
             showShopAlert = true
@@ -2149,99 +2136,235 @@ private struct CapyShopSheet: View {
     let items: [CapyShopItem]
     let isPurchased: (CapyShopItem) -> Bool
     let onBuy: (CapyShopItem) -> Void
+    let onReset: () -> Void
+    
+    @State private var purchasedItem: CapyShopItem? = nil
+    @State private var showSunburst = false
+    @State private var flyingStats: [FlyingStat] = []
+    
+    @State private var centerPoint: CGPoint = .zero
 
     var body: some View {
-        VStack(spacing: 14) {
-            Capsule()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 60, height: 6)
-                .padding(.top, 8)
-
-            HStack {
-                Text("CapyShop")
-                    .font(.custom("Gaegu-Regular", size: 28))
-                    .foregroundStyle(Color.capyDarkBrown)
-                Spacer()
+        ZStack {
+            VStack(spacing: 14) {
+                Capsule()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 60, height: 6)
+                    .padding(.top, 8)
                 
-                Text("🪙")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .padding(.top, 2)
-                Text(String(balance))
-                    .font(.custom("Gaegu-Regular", size: 28))
-                    .foregroundStyle(Color.capyDarkBrown)
-            }
-            .padding(.horizontal, 20)
-            
-            Text("care drop for your capy: \(dayLabel)")
-                .font(.custom("Gaegu-Regular", size: 17))
-                .foregroundStyle(Color.capyBrown.opacity(0.75))
-                .padding(.horizontal, 20)
-
-//            VStack(alignment: .leading, spacing: 3) {
-//                Text("how to buy: tap a \"buy\" button.")
-//                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
-//            }
-//            .font(.custom("Gaegu-Regular", size: 16))
-//            .foregroundStyle(Color.capyBrown.opacity(0.8))
-//            .frame(maxWidth: .infinity, alignment: .leading)
-//            .padding(.horizontal, 20)
-
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 10) {
-                    ForEach(items) { item in
-                        HStack(spacing: 12) {
-                            Text(item.emoji)
-                                .font(.system(size: 30))
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(item.title)
-                                        .font(.custom("Gaegu-Regular", size: 22))
-                                        .foregroundStyle(Color.capyDarkBrown)
-                                    Text(effectText2(for: item))
-                                        .font(.custom("Gaegu-Regular", size: 18))
-                                        .foregroundStyle(Color.capyBrown)
-                                        .opacity(0.8)
-                                }
-                                Text(item.description)
-                                    .font(.custom("Gaegu-Regular", size: 16))
-                                    .foregroundStyle(Color.capyBrown.opacity(0.78))
-//                                Text(effectText(for: item))
-//                                    .font(.custom("Gaegu-Regular", size: 15))
-//                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
-                            }
-
-                            Spacer()
-
-                            let purchased = isPurchased(item)
-                            Button {
-                                onBuy(item)
-                            } label: {
-                                Text(purchased ? "bought today" : "buy \(item.cost)")
-                                    .font(.custom("Gaegu-Regular", size: 18))
-                                    .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white.opacity(0.92))
-                                    .clipShape(Capsule())
-                            }
-                            .disabled(purchased)
-                        }
-                        .padding(12)
-                        .background(Color.white.opacity(0.72))
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    }
-                    Text("new items appear daily at midnight.")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                        .foregroundStyle(Color.capyBrown.opacity(0.75))
-                        .padding(.vertical, 14)
+                HStack {
+                    Text("CapyShop")
+                        .font(.custom("Gaegu-Regular", size: 28))
+                        .foregroundStyle(Color.capyDarkBrown)
+                    Spacer()
+                    
+                    Text("🪙")
+                        .font(.custom("Gaegu-Regular", size: 24))
+                        .padding(.top, 2)
+                    Text(String(balance))
+                        .font(.custom("Gaegu-Regular", size: 28))
+                        .foregroundStyle(Color.capyDarkBrown)
+                        .contentTransition(.numericText(value: Double(balance)))
+                        .animation(.snappy, value: balance)
                 }
                 .padding(.horizontal, 20)
+                
+                Text("care drop for your capy: \(dayLabel)")
+                    .font(.custom("Gaegu-Regular", size: 17))
+                    .foregroundStyle(Color.capyBrown.opacity(0.75))
+                    .padding(.horizontal, 20)
+                
+                //            VStack(alignment: .leading, spacing: 3) {
+                //                Text("how to buy: tap a \"buy\" button.")
+                //                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
+                //            }
+                //            .font(.custom("Gaegu-Regular", size: 16))
+                //            .foregroundStyle(Color.capyBrown.opacity(0.8))
+                //            .frame(maxWidth: .infinity, alignment: .leading)
+                //            .padding(.horizontal, 20)
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 10) {
+                        ForEach(items) { item in
+                            HStack(spacing: 12) {
+                                Text(item.emoji)
+                                    .font(.system(size: 30))
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(item.title)
+                                            .font(.custom("Gaegu-Regular", size: 22))
+                                            .foregroundStyle(Color.capyDarkBrown)
+                                        Text(effectText2(for: item))
+                                            .font(.custom("Gaegu-Regular", size: 18))
+                                            .foregroundStyle(Color.capyBrown)
+                                            .opacity(0.8)
+                                    }
+                                    Text(item.description)
+                                        .font(.custom("Gaegu-Regular", size: 16))
+                                        .foregroundStyle(Color.capyBrown.opacity(0.78))
+                                    //                                Text(effectText(for: item))
+                                    //                                    .font(.custom("Gaegu-Regular", size: 15))
+                                    //                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
+                                }
+                                
+                                Spacer()
+                                
+                                let purchased = isPurchased(item)
+                                Button {
+                                    //                                onBuy(item)
+                                    handleBuy(item)
+                                } label: {
+                                    Text(purchased ? "bought today" : "buy \(item.cost)")
+                                        .font(.custom("Gaegu-Regular", size: 18))
+                                        .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(Color.white.opacity(0.92))
+                                        .clipShape(Capsule())
+                                }
+                                .disabled(purchased)
+                            }
+                            .padding(12)
+                            .background(Color.white.opacity(0.72))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        }
+                        Text("new items appear daily at midnight.")
+                            .font(.custom("Gaegu-Regular", size: 18))
+                            .foregroundStyle(Color.capyBrown.opacity(0.75))
+                            .padding(.vertical, 14)
+                        
+                        Button {
+                            onReset()
+                        } label: {
+                            Text("[DEBUG: RESET SHOP & +100 COINS")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.gray.opacity(0.5))
+                                .padding(.bottom, 20)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+            //        .background(Color.capyBeige.opacity(0.96))
+            .background(
+                GeometryReader { geo in
+                    Color.capyBeige.opacity(0.96)
+                        .onAppear {
+                            centerPoint = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                        }
+                }
+            )
+            
+            if let item = purchasedItem {
+                Color.white.opacity(0.6)
+                    .ignoresSafeArea()
+//                    .transition(.opacity)
+                    .onTapGesture {
+                        closeCelebration()
+                    }
+                    .overlay {
+                        ZStack {
+        //                    Image(systemName: "sun.max.fill")
+                            Image("sunburst")
+                                .resizable()
+        //                        .foregroundStyle(Color.white.opacity(0.3))
+                                .opacity(0.8)
+                                .frame(width: 600, height: 600)
+                                .rotationEffect(.degrees(showSunburst ? 360 : 0))
+                                .animation(.linear(duration: 10).repeatForever(autoreverses: false), value: showSunburst)
+                            
+//                            Image(systemName: "sparkles")
+//                            Image("sparkles")
+//                                .resizable()
+//                                .foregroundStyle(Color.yellow)
+//                                .frame(width: 250, height: 250)
+//                                .opacity(showSunburst ? 0.8 : 0)
+//                                .scaleEffect(showSunburst ? 1.2 : 0.8)
+//                                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: showSunburst)
+                            
+                            Text(item.emoji)
+                                .font(.system(size: 120))
+                                .shadow(color: .white.opacity(0.5), radius: 20, x: 0, y: 10)
+                                .scaleEffect(showSunburst ? 1.0 : 0.1)
+                                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showSunburst)
+                        }
+                    }
+                    .zIndex(100)
+                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+            }
+            
+            ForEach(flyingStats) { stat in
+                Text(stat.emoji)
+                    .font(.system(size: 32))
+                    .modifier(FlyingStatModifier(stat: stat) {
+                        flyingStats.removeAll(where: { $0.id == stat.id })
+                    })
+                    .zIndex(101)
             }
         }
-        .background(Color.capyBeige.opacity(0.96))
     }
-
+    
+    private func handleBuy(_ item: CapyShopItem) {
+        onBuy(item)
+        
+        if isPurchased(item) {
+            startCelebration(for: item)
+        }
+    }
+        
+    private func startCelebration(for item: CapyShopItem) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        
+        withAnimation {
+            purchasedItem = item
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            showSunburst = true
+        }
+        
+        if let statReward = item.statReward {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                spawnFlyingStats(emoji: statReward)
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            closeCelebration()
+        }
+    }
+    
+    private func closeCelebration() {
+        withAnimation(.easeOut(duration: 0.6)) {
+            purchasedItem = nil
+//            showSunburst = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            showSunburst = false
+        }
+    }
+    
+    private func spawnFlyingStats(emoji: String) {
+        for i in 0..<6 {
+            let randomXOffset = CGFloat.random(in: -60...60)
+//            let randomYOffset = CGFloat.random(in: -20...20)
+            
+            let stat = FlyingStat(
+                emoji: emoji,
+                startPoint: centerPoint,
+                endPoint: CGPoint(x: centerPoint.x + randomXOffset * 2, y: -100)
+            )
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.1) {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                flyingStats.append(stat)
+            }
+        }
+    }
+    
     private func effectText(for item: CapyShopItem) -> String {
         guard let stat = item.statReward else {
             return "effect: cosmetic only (no stat boost)"
@@ -2307,6 +2430,38 @@ struct ExplodingCoinModifier: ViewModifier {
                 let totalDuration = 0.3 + magnetDelay + magnetDuration
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) {
+                    onComplete()
+                }
+            }
+    }
+}
+
+struct FlyingStat: Identifiable {
+    let id = UUID()
+    var emoji: String
+    var startPoint: CGPoint
+    var endPoint: CGPoint
+}
+
+struct FlyingStatModifier: ViewModifier {
+    let stat: FlyingStat
+    let onComplete: () -> Void
+    
+    @State private var progress: CGFloat = 0
+    
+    func body(content: Content) -> some View {
+        content
+            .position(
+                x: stat.startPoint.x + (stat.endPoint.x - stat.startPoint.x) * progress,
+                y: stat.startPoint.y + (stat.endPoint.y - stat.startPoint.y) * progress
+            )
+            .opacity(1.0 - progress)
+            .scaleEffect(1.0 - (progress * 0.5))
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    progress = 1.0
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                     onComplete()
                 }
             }
