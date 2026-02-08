@@ -123,6 +123,104 @@ class CapyBrain: ObservableObject {
         
         return .reply(choice?.message.content ?? "Thinking...")
     }
+    
+    func streamCoachReply(
+        userMessage: String,
+        goals: [String],
+        completedCount: Int,
+        pendingCount: Int,
+        extraContext: String? = nil
+    ) -> AsyncThrowingStream<String, Error> {
+        
+        return AsyncThrowingStream { continuation in
+            Task {
+                guard !apiKey.isEmpty else {
+                    continuation.yield(fallbackCoachReply(userMessage: userMessage, goals: goals, pendingCount: pendingCount))
+                    continuation.finish()
+                    return
+                }
+                
+                let goalsContext = goals.prefix(4).joined(separator: ", ")
+                let contextSummary = goals.isEmpty ? "No active goals provided yet." : goalsContext
+                
+                let systemMessage = [
+                    "role": "system",
+                    "content": """
+                    you are capy, a chill capybara friend.
+                    always write in lowercase.
+                    keep replies short (1-2 sentences).
+                    sound casual and warm, like talking to a bro.
+                    do not sound like a formal assistant.
+                    avoid pressure and avoid hard commands.
+                    nudge gently only when useful.
+                    reference one concrete goal when possible.
+                    if the user taps you to ask how you feel, use the provided app context:
+                    mention how you feel, mention coins, progress, and one shop item naturally.
+                    """
+                ]
+                
+                var userPayload = """
+                User message: \(userMessage)
+                Active goals: \(contextSummary)
+                Completed tasks: \(completedCount)
+                Pending tasks: \(pendingCount)
+                """
+                
+                if let extraContext, !extraContext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    userPayload += "\nExtra context: \(extraContext)"
+                }
+
+                let userContext = [
+                    "role": "user",
+                    "content": userPayload
+                ]
+
+                let parameters: [String: Any] = [
+                    "model": "x-ai/grok-4.1-fast",
+                    "messages": [systemMessage, userContext],
+                    "stream": true
+                ]
+
+                do {
+                    var request = URLRequest(
+                        url: endpoint,
+                        cachePolicy: .useProtocolCachePolicy,
+                        timeoutInterval: 120
+                    )
+                    request.httpMethod = "POST"
+                    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    request.httpBody = try JSONSerialization.data(withJSONObject: parameters)
+                    
+                    let (result, response) = try await URLSession.shared.bytes(for: request)
+                    
+                    guard let httpResponse = response as? HTTPURLResponse, (200..<299).contains(httpResponse.statusCode) else {
+                        print("System error status: \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+                        continuation.finish(throwing: URLError(.badServerResponse))
+                        return
+                    }
+                    
+                    for try await line in result.lines {
+                        if line.hasPrefix("data: ") {
+                            let jsonStr = line.dropFirst(6)
+                            if jsonStr == "[DATA]" { break }
+                            
+                            if let data = jsonStr.data(using: .utf8),
+                               let chunk = try? JSONDecoder().decode(StreamChunk.self, from: data),
+                               let content = chunk.choices.first?.delta.content {
+                                continuation.yield(content.lowercased())
+                            }
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    print("Streaming error: \(error)")
+                    continuation.yield(fallbackCoachReply(userMessage: userMessage, goals: goals, pendingCount: pendingCount))
+                    continuation.finish()
+                }
+            }
+        }
+    }
 
     func coachReply(
         userMessage: String,
@@ -221,6 +319,20 @@ class CapyBrain: ObservableObject {
         let focus = goals.randomElement() ?? "your next goal"
         return "yo bro, what's one tiny step you could do for \"\(focus)\"?"
     }
+}
+
+struct StreamChunk: Decodable {
+    let id: String
+    let choices: [StreamChoice]
+}
+
+struct StreamChoice: Decodable {
+    let delta: StreamDelta
+    let finish_reason: String?
+}
+
+struct StreamDelta: Decodable {
+    let content: String?
 }
 
 struct ChatCompletionResponse: Decodable {

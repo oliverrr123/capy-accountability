@@ -206,6 +206,8 @@ struct HomeView2: View {
     @State private var flyingCoins: [FlyingCoin] = []
     @State private var audioPlayer: AVAudioPlayer?
     
+    @State private var micTapped: Bool = false
+    
     @State private var isCollectingCoins = false
 
     @State private var taskToEdit: CapyTask?
@@ -268,8 +270,6 @@ struct HomeView2: View {
                     .onTapGesture {
                         if showChatInput {
                             closeChat()
-                        } else {
-                            handleCapyTap()
                         }
                     }
                     .ignoresSafeArea()
@@ -505,6 +505,94 @@ struct HomeView2: View {
             
             HStack(spacing: -20) {
                 
+//                Button{
+//                    HapticEngine.shared.playSwell()
+//                } label: {
+//                    ZStack {
+//                        Circle()
+//                            .fill(Color.capyBlue)
+//                            .frame(width: 50, height: 50)
+//                            .shadow(radius: 4)
+//                        
+//                        Text("a")
+//                            .font(.custom("Gaegu-Regular", size: 22))
+//                            .foregroundStyle(.white)
+//                    }
+//                    .frame(width: 50, height: 50)
+//                }
+//                .frame(width: 80, height: 80, alignment: .bottom)
+//                .contentShape(Rectangle())
+//                
+//                Button{
+//                    HapticEngine.shared.playCoinShower()
+//                } label: {
+//                    ZStack {
+//                        Circle()
+//                            .fill(Color.capyBlue)
+//                            .frame(width: 50, height: 50)
+//                            .shadow(radius: 4)
+//                        
+//                        Text("a")
+//                            .font(.custom("Gaegu-Regular", size: 22))
+//                            .foregroundStyle(.white)
+//                    }
+//                    .frame(width: 50, height: 50)
+//                }
+//                .frame(width: 80, height: 80, alignment: .bottom)
+//                .contentShape(Rectangle())
+//                
+//                Button{
+//                    HapticEngine.shared.playDoubleThud()
+//                } label: {
+//                    ZStack {
+//                        Circle()
+//                            .fill(Color.capyBlue)
+//                            .frame(width: 50, height: 50)
+//                            .shadow(radius: 4)
+//                        
+//                        Text("a")
+//                            .font(.custom("Gaegu-Regular", size: 22))
+//                            .foregroundStyle(.white)
+//                    }
+//                    .frame(width: 50, height: 50)
+//                }
+//                .frame(width: 80, height: 80, alignment: .bottom)
+//                .contentShape(Rectangle())
+//                
+//                Button{
+//                    HapticEngine.shared.playPurr()
+//                } label: {
+//                    ZStack {
+//                        Circle()
+//                            .fill(Color.capyBlue)
+//                            .frame(width: 50, height: 50)
+//                            .shadow(radius: 4)
+//                        
+//                        Text("a")
+//                            .font(.custom("Gaegu-Regular", size: 22))
+//                            .foregroundStyle(.white)
+//                    }
+//                    .frame(width: 50, height: 50)
+//                }
+//                
+//                Button{
+//                    HapticEngine.shared.playCustomTexture()
+//                } label: {
+//                    ZStack {
+//                        Circle()
+//                            .fill(Color.capyBlue)
+//                            .frame(width: 50, height: 50)
+//                            .shadow(radius: 4)
+//                        
+//                        Text("a")
+//                            .font(.custom("Gaegu-Regular", size: 22))
+//                            .foregroundStyle(.white)
+//                    }
+//                    .frame(width: 50, height: 50)
+//                }
+//                .frame(width: 80, height: 80, alignment: .bottom)
+//                .contentShape(Rectangle())
+                
                 Button(action: handleMicTap) {
                     ZStack {
                         Circle()
@@ -512,7 +600,7 @@ struct HomeView2: View {
                             .frame(width: 50, height: 50)
                             .shadow(radius: 4)
                         
-                        if speechRecognizer.isRecording {
+                        if speechRecognizer.isRecording || micTapped {
                             //                        Image(systemName: "waveform")
                             //                            .font(.system(size: 24))
                             //                            .foregroundStyle(.white)
@@ -640,6 +728,7 @@ struct HomeView2: View {
             HStack(spacing: 10) {
                 Button {
                     showLiveActivitySheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     HStack(spacing: 6) {
 //                        Circle()
@@ -659,6 +748,7 @@ struct HomeView2: View {
                 Button {
                     refreshDailyShopIfNeeded()
                     showShopSheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "storefront.fill")
@@ -743,11 +833,13 @@ struct HomeView2: View {
                             }
                         }
                     }
+                    .scrollDisabled(filteredTasks.count <= 5)
                 }
 
                 Button(action: {
                     newTaskText = ""
                     showAddAlert = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }) {
                     Text("+++++")
                         .font(Font.custom("Gaegu-Regular", size: 24))
@@ -824,7 +916,7 @@ struct HomeView2: View {
                         .font(.custom("Gaegu-Regular", size: 21))
                         .foregroundStyle(Color.capyDarkBrown)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .lineLimit(4)
+                        .lineLimit(5)
                         .minimumScaleFactor(0.8)
 
 //                    if thinkingState != .none {
@@ -837,46 +929,44 @@ struct HomeView2: View {
 //                        }
 //                    }
                 }
-                .padding(.horizontal, 28)
-                .padding(.bottom, 42)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
+                .frame(maxHeight: .infinity)
             }
+            .frame(height: 135)
             .padding(.horizontal, 20)
-
-//            HStack(spacing: 10) {
-//                TextField("reply to capy...", text: $chatInputText)
-//                    .font(.custom("Gaegu-Regular", size: 20))
-//                    .foregroundStyle(Color.capyDarkBrown)
-//                    .submitLabel(.send)
-//                    .onSubmit(sendMessageToCapy)
-//                    .disabled(isCapySleeping)
-//
-//                Button(action: sendMessageToCapy) {
-//                    Image(systemName: "paperplane.fill")
-//                        .font(.system(size: 16, weight: .semibold))
-//                        .foregroundStyle(.white)
-//                        .frame(width: 34, height: 34)
-//                        .background(Color.capyBlue)
-//                        .clipShape(Circle())
-//                }
-//                .disabled(capyIsThinking || isCapySleeping)
-//            }
-//            .padding(.horizontal, 16)
-//            .padding(.vertical, 10)
-//            .background(.white.opacity(0.88))
-//            .clipShape(Capsule())
-//            .padding(.horizontal, 20)
-//            .opacity(isCapySleeping ? 0.7 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: capyText)
 
             Image(isCapySleeping ? "capy_sleep" : "capy_sit")
                 .resizable()
                 .scaledToFill()
-                .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight/2 : 40)
+                .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight/2 : 60)
                 .frame(width: UIScreen.main.bounds.width)
 //                .padding(.bottom, 10)
-                .onTapGesture {
-                    handleCapyTap()
-                }
+//                .onTapGesture {
+//                    if !showChatInput {
+//                        handleCapyTap()
+//                    }
+//                }
                 .ignoresSafeArea()
+                .overlay {
+                    GeometryReader { geo in
+                        ZStack {
+                            Capsule()
+                                .fill(Color.black.opacity(0.001))
+                                .frame(width: 220, height: 170)
+                                .position(x: geo.size.width / 2, y: geo.size.height / 2 - 70)
+                                .onTapGesture {
+                                    if !showChatInput {
+                                        handleCapyTap()
+                                    } else {
+                                        closeChat()
+                                    }
+                                }
+                        }
+                    }
+                }
+            
 //                .overlay(alignment: .bottom) {
 //                    HStack {
 //                        ForEach(stats) { stat in
@@ -1059,6 +1149,8 @@ struct HomeView2: View {
             store.addTask(title: newTaskText, frequency: selectedFrequency)
         }
         
+        HapticEngine.shared.playDoubleThud()
+        
         newTaskText = ""
         
         thinkingState = .text
@@ -1207,6 +1299,7 @@ struct HomeView2: View {
     }
     
     private func openChat() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         chatInputText = ""
         withAnimation {
             showChatInput = true
@@ -1215,6 +1308,7 @@ struct HomeView2: View {
     }
     
     private func closeChat() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         withAnimation {
             showChatInput = false
             isChatFocused = false
@@ -1222,6 +1316,8 @@ struct HomeView2: View {
     }
 
     private func sendMessageToCapy() {
+        HapticEngine.shared.playDoubleThud()
+        
         let message = chatInputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !isCapySleeping, !message.isEmpty, thinkingState == .none else { return }
 
@@ -1246,10 +1342,17 @@ struct HomeView2: View {
     }
     
     private func handleMicTap() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if speechRecognizer.isRecording {
             speechRecognizer.stopTranscribing()
         } else {
-            let start = { speechRecognizer.startTranscribing() }
+            micTapped = true
+            let start = {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.125) {
+                    speechRecognizer.startTranscribing()
+                    micTapped = false
+                }
+            }
             
             if #available(iOS 17.0, *) {
                 switch AVAudioApplication.shared.recordPermission {
@@ -1281,24 +1384,43 @@ struct HomeView2: View {
         guard !isCapySleeping, thinkingState == .none else { return }
         thinkingState = .mic
         processCoachReply(message: text)
+        HapticEngine.shared.playDoubleThud()
     }
     
     private func processCoachReply(message: String) {
         let context = capyContextForFeeling()
+//        thinkingState = .text
+//        capyText = ""
+        
         Task {
-            let reply = await brain.coachReply(
+            let stream = brain.streamCoachReply(
                 userMessage: message,
                 goals: pendingTasks.map { $0.title },
                 completedCount: store.tasks.filter { $0.isDone }.count,
                 pendingCount: pendingTasks.count,
                 extraContext: context
             )
-            await MainActor.run {
-                capyText = reply
-                thinkingState = .none
-                if showChatInput {
-                    closeChat()
+            
+            var isFirstChunk = true
+            
+            for try await chunk in stream {
+                if chunk.isEmpty { continue }
+                
+                await MainActor.run {
+                    if isFirstChunk {
+                        capyText = ""
+                        isFirstChunk = false
+                    }
+                    capyText += chunk
+                    
+                    let generator = UISelectionFeedbackGenerator()
+                    generator.prepare()
+                    generator.selectionChanged()
                 }
+            }
+            
+            await MainActor.run {
+                thinkingState = .none
             }
         }
     }
