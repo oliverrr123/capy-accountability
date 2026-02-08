@@ -120,6 +120,12 @@ final class CapyStore: ObservableObject {
         return true
     }
 
+    func awardBonusCoins(_ amount: Int) {
+        guard amount > 0 else { return }
+        stats.coins += amount
+        save()
+    }
+
     func resetDailyIfNeeded() {
         let today = calendar.startOfDay(for: Date())
         if let lastReset = stats.lastResetDate, calendar.isDate(lastReset, inSameDayAs: today) {
