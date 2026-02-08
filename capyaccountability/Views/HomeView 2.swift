@@ -499,7 +499,7 @@ struct HomeView2: View {
             .padding(.horizontal, 8)
             .background(.white.opacity(0.9))
             .clipShape(Capsule())
-            .padding(.leading, 20)
+            .padding(.leading, 12)
             
             Spacer()
             
