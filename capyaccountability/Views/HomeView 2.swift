@@ -192,15 +192,22 @@ struct HomeView2: View {
     @AppStorage("capy_live_activity_enabled") private var liveActivityEnabled = false
     @AppStorage("capy_live_activity_mode") private var liveActivityModeRaw = CapyLiveActivityMode.capyCare.rawValue
     @AppStorage("capy_live_activity_goal_scope") private var liveActivityGoalScopeRaw = CapyLiveActivityGoalScope.allGoals.rawValue
+    
+    @AppStorage("capy_stat_energy") private var storedEnergy: Double = 2.0
+    @AppStorage("capy_stat_hygiene") private var storedHygiene: Double = 3.0
+    @AppStorage("capy_stat_mood") private var storedMood: Double = 3.0
+    @AppStorage("capy_last_decay_ts") private var lastDecayTimestamp: Double = Date().timeIntervalSince1970
 
     @State private var showAddAlert = false
     @State private var newTaskText = ""
 
-    @State private var stats: [StatItem] = [
-        StatItem(emoji: "🍋", points: 1.0),
-        StatItem(emoji: "🛁", points: 3.0),
-        StatItem(emoji: "😁", points: 2.0)
-    ]
+    private var stats: [StatItem] {
+        [
+            StatItem(emoji: "🍋", points: storedEnergy),
+            StatItem(emoji: "🛁", points: storedHygiene),
+            StatItem(emoji: "😁", points: storedMood)
+        ]
+    }
     
     @State private var balanceDisplay: Double = 0.0
     @State private var flyingCoins: [FlyingCoin] = []
@@ -238,6 +245,8 @@ struct HomeView2: View {
     
     @State private var isCapySleeping = false
     @State private var lastSessionGoalCheckInDate = Date.distantPast
+    
+    @State private var bouncingDecorationID: String? = nil
 
     private let goalCheckInTimer = Timer.publish(every: 10 * 60, on: .main, in: .common).autoconnect()
     private let capySleepTimer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -386,6 +395,15 @@ struct HomeView2: View {
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
             syncLiveActivity()
+            checkDecay()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                checkDecay()
+                refreshDailyShopIfNeeded()
+                refreshCapySleepState()
+            }
+            syncLiveActivity(isAwayOverride: newPhase != .active)
         }
         .onChange(of: store.stats.coins) { _, newValue in
             if !isCollectingCoins {
@@ -946,36 +964,69 @@ struct HomeView2: View {
             .frame(height: 135)
             .padding(.horizontal, 20)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: capyText)
-
-            Image(isCapySleeping ? "capy_sleep" : "capy_sit")
-                .resizable()
-                .scaledToFill()
-                .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight/2 : 60)
-                .frame(width: UIScreen.main.bounds.width)
+            
+            
+            ZStack {
+                Image(isCapySleeping ? "capy_sleep" : "capy_sit")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: UIScreen.main.bounds.width)
 //                .padding(.bottom, 10)
 //                .onTapGesture {
 //                    if !showChatInput {
 //                        handleCapyTap()
 //                    }
 //                }
-                .ignoresSafeArea()
-                .overlay {
-                    GeometryReader { geo in
-                        ZStack {
-                            Capsule()
-                                .fill(Color.black.opacity(0.001))
-                                .frame(width: 220, height: 170)
-                                .position(x: geo.size.width / 2, y: geo.size.height / 2 - 70)
-                                .onTapGesture {
-                                    if !showChatInput {
-                                        handleCapyTap()
-                                    } else {
-                                        closeChat()
-                                    }
-                                }
+                
+                Capsule()
+                    .fill(Color.black.opacity(0.001))
+                    .frame(width: 220, height: 170)
+                    .offset(y: -50)
+                
+                    .onTapGesture {
+                        if !showChatInput {
+                            handleCapyTap(
+                        } else {
+                            closeChat()
                         }
                     }
+                
+                ForEach(Array(purchasedItemIDs), id: \.self) { id in
+                    if let config = getDecorationConfig(for: id) {
+                        Text(config.emoji)
+                            .font(.system(size: 20))
+                            .scaleEffect(config.scale)
+                            .scaleEffect(bouncingDecorationID == id ? 1.3 : 1.0)
+                            .rotationEffect(.degrees(config.rotation))
+                            .rotationEffect(.degrees(bouncingDecorationID == id ? -10 : 0))
+                            .offset(config.offset)
+                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 5)
+                            .onTapGesture {
+                                handleDecorationTap(id: id, sound: config.soundName)
+                            }
+                    }
                 }
+                
+//                    .overlay {
+//                        GeometryReader { geo in
+//                            ZStack {
+//                                Capsule()
+//                                    .fill(Color.black.opacity(0.001))
+//                                    .frame(width: 220, height: 170)
+//                                    .position(x: geo.size.width / 2, y: geo.size.height / 2 - 70)
+//                                    .onTapGesture {
+//                                        if !showChatInput {
+//                                            handleCapyTap()
+//                                        } else {
+//                                            closeChat()
+//                                        }
+//                                    }
+//                            }
+//                        }
+//                    }
+            }
+            .padding(.bottom, (keyboardHeight > 0 && isChatFocused) ? keyboardHeight/2 : 60)
+            .ignoresSafeArea()
             
 //                .overlay(alignment: .bottom) {
 //                    HStack {
@@ -1104,12 +1155,29 @@ struct HomeView2: View {
     }
 
     private func updateStat(emoji: String, change: Double) {
-        if let index = stats.firstIndex(where: { $0.emoji == emoji }) {
-            withAnimation {
-                let newPoints = stats[index].points + change
-                stats[index].points = min(max(newPoints, 0), 5)
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        generator.impactOccurred()
+        
+        withAnimation {
+            switch emoji {
+            case "🍋":
+                storedEnergy = min(max(storedEnergy + change, 0), 5)
+            case "🛁":
+                storedHygiene = min(max(storedHygiene + change, 0), 5)
+            case "😁":
+                storedMood = min(max(storedMood + change, 0), 5)
+            default:
+                break
             }
         }
+        
+//        if let index = stats.firstIndex(where: { $0.emoji == emoji }) {
+//            withAnimation {
+//                let newPoints = stats[index].points + change
+//                stats[index].points = min(max(newPoints, 0), 5)
+//            }
+//        }
     }
 
     private func triggerReward(at point: CGPoint, amount: Int) {
@@ -1707,6 +1775,113 @@ struct HomeView2: View {
             isDailyPriority: isDailyPriority
         )
     }
+    
+    private func checkDecay() {
+        let now = Date().timeIntervalSince1970
+        let hoursPassed = (now - lastDecayTimestamp) / 3600.0
+        
+        let decayRateHours: Double = 4.0
+        
+        if hoursPassed >= decayRateHours {
+            let pointsToLose = Int(hoursPassed / decayRateHours)
+            
+            if pointsToLose > 0 {
+                withAnimation {
+                    storedEnergy = max(storedEnergy - Double(pointsToLose), 0)
+                    storedHygiene = max(storedHygiene - Double(pointsToLose), 0)
+                    storedMood = max(storedMood - Double(pointsToLose), 0)
+                }
+                
+                lastDecayTimestamp = now
+                print("Capy stats decayed by \(pointsToLose) points after \(String(format: "%.1f", hoursPassed)) hours")
+            }
+        }
+    }
+    
+    struct CapyDecoration {
+        let emoji: String
+        let offset: CGSize
+        let scale: CGFloat
+        let soundName: String?
+        let rotation: Double
+    }
+    
+    private func getDecorationConfig(for id: String) -> CapyDecoration? {
+        switch id {
+        case "sun_hat":
+            return CapyDecoration(emoji: "👒", offset: CGSize(width: 10, height: -130), scale: 3.5, soundName: "cloth", rotation: -5)
+        case "river_toy":
+            return CapyDecoration(emoji: "🦆", offset: CGSize(width: -100, height: 80), scale: 2.5, soundName: "quack", rotation: 0)
+        case "citrus_treats":
+            return CapyDecoration(emoji: "🧣", offset: CGSize(width: 0, height: 90), scale: 3.0, soundName: "cloth", rotation: 0)
+        case "watermelon_bowl":
+            return CapyDecoration(emoji: "🍉", offset: CGSize(width: 80, height: 100), scale: 2.2, soundName: "chomp", rotation: -10)
+        case "cozy_lantern":
+            return CapyDecoration(emoji: "🏮", offset: CGSize(width: -120, height: -50), scale: 2.5, soundName: "click", rotation: 5)
+        case "rain_boots":
+            return CapyDecoration(emoji: "🥾", offset: CGSize(width: 60, height: 120), scale: 1.8, soundName: "stomp", rotation: 15)
+        case "bubble_bath":
+            return CapyDecoration(emoji: "🫧", offset: CGSize(width: -90, height: -100), scale: 2.5, soundName: "pop", rotation: -10)
+        case "grooming_kit":
+            return CapyDecoration(emoji: "🪮", offset: CGSize(width: -130, height: 40), scale: 2.0, soundName: "brush", rotation: -45)
+        default:
+            return nil
+        }
+    }
+    
+    private func handleDecorationTap(id: String, sound: String?) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.2)) {
+            bouncingDecorationID = id
+        }
+        
+        if let soundName = sound {
+            playSound(name: soundName, fileExtension: "mp3")
+        }
+        
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        requestItemReaction(itemID: id)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation {
+                bouncingDecorationID = nil
+            }
+        }
+    }
+    
+    private func getShopItemTitle(id: String) -> String {
+        return CapyShopItem.catalog.first(where: { $0.id == id })?.title ?? "thing"
+    }
+    
+    private func requestItemReaction(itemID: String) {
+        guard thinkingState == .none else { return }
+        
+        let itemTitle = getShopItemTitle(id: itemID)
+        let context = capyContextForFeeling()
+        
+        thinkingState = .text
+        
+        Task {
+            let reply = await brain.coachReply(
+                userMessage: "system note: user just tapped/poked your '\(itemTitle)'. give a specific, chill reaction to this item. keep it very short (max 1 sentence). lowercase.",
+                goals: pendingTasks.map { $0.title },
+                completedCount: store.tasks.filter { $0.isDone }.count,
+                pendingCount: pendingTasks.count,
+                extraContext: context
+            )
+            
+            await MainActor.run {
+                withAnimation {
+                    capyText = reply
+                    thinkingState = .none
+                }
+                
+                let generator = UINotificationFeedbackGenerator()
+                generator.notificationOccurred(.success)
+            }
+        }
+    }
 }
 
 private struct SettingsSheet: View {
@@ -1806,9 +1981,9 @@ private struct SettingsSheet: View {
                 Toggle("", isOn: $isEnabled)
                     .tint(Color.green)
                     .labelsHidden()
-                //                            Text("Sleek lock-screen view with daily priority first.")
-                //                                .font(.custom("Gaegu-Regular", size: 18))
-                //                                .foregroundStyle(Color.capyBrown.opacity(0.8))
+//                            Text("Sleek lock-screen view with daily priority first.")
+//                                .font(.custom("Gaegu-Regular", size: 18))
+//                                .foregroundStyle(Color.capyBrown.opacity(0.8))
             }
             
             Text("Show your goals on the lock screen.")
@@ -1960,137 +2135,163 @@ private struct CapyShopSheet: View {
     @State private var flyingStats: [FlyingStat] = []
     
     @State private var centerPoint: CGPoint = .zero
-
+    
     var body: some View {
         ZStack {
-            VStack(spacing: 14) {
-                Capsule()
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(width: 60, height: 6)
-                    .padding(.top, 8)
+            mainContent
+            celebrationOverlay
+            flyingStatsLayer
+        }
+    }
+        
+    private var mainContent: some View {
+        VStack(spacing: 14) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 8)
+            
+            HStack {
+                Text("CapyShop")
+                    .font(.custom("Gaegu-Regular", size: 28))
+                    .foregroundStyle(Color.capyDarkBrown)
+                Spacer()
                 
-                HStack {
-                    Text("CapyShop")
-                        .font(.custom("Gaegu-Regular", size: 28))
-                        .foregroundStyle(Color.capyDarkBrown)
-                    Spacer()
+                Text("🪙")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .padding(.top, 2)
+                Text(String(balance))
+                    .font(.custom("Gaegu-Regular", size: 28))
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .contentTransition(.numericText(value: Double(balance)))
+                    .animation(.snappy, value: balance)
+            }
+            .padding(.horizontal, 20)
+            
+            Text("care drop for your capy: \(dayLabel)")
+                .font(.custom("Gaegu-Regular", size: 17))
+                .foregroundStyle(Color.capyBrown.opacity(0.75))
+                .padding(.horizontal, 20)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 10) {
+                    ForEach(items) { item in
+                        shopItemRow(item)
+                    }
                     
-                    Text("🪙")
-                        .font(.custom("Gaegu-Regular", size: 24))
-                        .padding(.top, 2)
-                    Text(String(balance))
-                        .font(.custom("Gaegu-Regular", size: 28))
-                        .foregroundStyle(Color.capyDarkBrown)
-                        .contentTransition(.numericText(value: Double(balance)))
-                        .animation(.snappy, value: balance)
+                    Text("new items appear daily at midnight.")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.capyBrown.opacity(0.75))
+                        .padding(.vertical, 14)
+                    
+                    Button {
+                        onReset()
+                    } label: {
+                        Text("[DEBUG: RESET SHOP & +100 COINS")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.gray.opacity(0.5))
+                            .padding(.bottom, 20)
+                    }
                 }
                 .padding(.horizontal, 20)
-                
-                Text("care drop for your capy: \(dayLabel)")
-                    .font(.custom("Gaegu-Regular", size: 17))
-                    .foregroundStyle(Color.capyBrown.opacity(0.75))
-                    .padding(.horizontal, 20)
-                
-                //            VStack(alignment: .leading, spacing: 3) {
-                //                Text("how to buy: tap a \"buy\" button.")
-                //                Text("what it does: each item shows an effect (+1 stat or cosmetic only).")
-                //            }
-                //            .font(.custom("Gaegu-Regular", size: 16))
-                //            .foregroundStyle(Color.capyBrown.opacity(0.8))
-                //            .frame(maxWidth: .infinity, alignment: .leading)
-                //            .padding(.horizontal, 20)
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 10) {
-                        ForEach(items) { item in
-                            HStack(spacing: 12) {
-                                Text(item.emoji)
-                                    .font(.system(size: 30))
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(item.title)
-                                            .font(.custom("Gaegu-Regular", size: 22))
-                                            .foregroundStyle(Color.capyDarkBrown)
-                                        Text(effectText2(for: item))
-                                            .font(.custom("Gaegu-Regular", size: 18))
-                                            .foregroundStyle(Color.capyBrown)
-                                            .opacity(0.8)
-                                    }
-                                    Text(item.description)
-                                        .font(.custom("Gaegu-Regular", size: 16))
-                                        .foregroundStyle(Color.capyBrown.opacity(0.78))
-                                    //                                Text(effectText(for: item))
-                                    //                                    .font(.custom("Gaegu-Regular", size: 15))
-                                    //                                    .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
-                                }
-                                
-                                Spacer()
-                                
-                                let purchased = isPurchased(item)
-                                Button {
-                                    //                                onBuy(item)
-                                    handleBuy(item)
-                                } label: {
-                                    Text(purchased ? "bought today" : "buy \(item.cost)")
-                                        .font(.custom("Gaegu-Regular", size: 18))
-                                        .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .background(Color.white.opacity(0.92))
-                                        .clipShape(Capsule())
-                                }
-                                .disabled(purchased)
-                            }
-                            .padding(12)
-                            .background(Color.white.opacity(0.72))
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        }
-                        Text("new items appear daily at midnight.")
-                            .font(.custom("Gaegu-Regular", size: 18))
-                            .foregroundStyle(Color.capyBrown.opacity(0.75))
-                            .padding(.vertical, 14)
-                        
-                        Button {
-                            onReset()
-                        } label: {
-                            Text("[DEBUG: RESET SHOP & +100 COINS")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(Color.gray.opacity(0.5))
-                                .padding(.bottom, 20)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                }
             }
-            //        .background(Color.capyBeige.opacity(0.96))
-            .background(
-                GeometryReader { geo in
-                    Color.capyBeige.opacity(0.96)
-                        .onAppear {
-                            centerPoint = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-                        }
-                }
-            )
-            
-            if let item = purchasedItem {
-                Color.white.opacity(0.6)
-                    .ignoresSafeArea()
-//                    .transition(.opacity)
-                    .onTapGesture {
-                        closeCelebration()
+        }
+        //        .background(Color.capyBeige.opacity(0.96))
+        .background(
+            GeometryReader { geo in
+                Color.capyBeige.opacity(0.96)
+                    .onAppear {
+                        centerPoint = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
                     }
-                    .overlay {
-                        ZStack {
-        //                    Image(systemName: "sun.max.fill")
-                            Image("sunburst")
-                                .resizable()
-        //                        .foregroundStyle(Color.white.opacity(0.3))
-                                .opacity(0.8)
-                                .frame(width: 600, height: 600)
-                                .rotationEffect(.degrees(showSunburst ? 360 : 0))
-                                .animation(.linear(duration: 10).repeatForever(autoreverses: false), value: showSunburst)
-                            
+            }
+        )
+    }
+    
+    private func shopItemRow(_ item: CapyShopItem) -> some View {
+        HStack(spacing: 12) {
+            Text(item.emoji)
+                .font(.system(size: 30))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(item.title)
+                        .font(.custom("Gaegu-Regular", size: 22))
+                        .foregroundStyle(Color.capyDarkBrown)
+                    Text(effectText2(for: item))
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.capyBrown)
+                        .opacity(0.8)
+                }
+                Text(item.description)
+                    .font(.custom("Gaegu-Regular", size: 16))
+                    .foregroundStyle(Color.capyBrown.opacity(0.78))
+//                  Text(effectText(for: item))
+//                      .font(.custom("Gaegu-Regular", size: 15))
+//                      .foregroundStyle(Color.capyDarkBrown.opacity(0.78))
+            }
+            
+            Spacer()
+            
+            let purchased = isPurchased(item)
+            Button {
+//                  onBuy(item)
+                handleBuy(item)
+            } label: {
+                HStack {
+                    Text(purchased ? "bought" : "buy")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                    
+                    HStack(spacing: purchased ? 0 : 2) {
+                        Text(purchased ? "" : "(")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                        
+                        Text(purchased ? "" : "🪙")
+                            .font(.custom("Gaegu-Regular", size: 8))
+                        
+                        Text(purchased ? "" : String(item.cost))
+                            .font(.custom("Gaegu-Regular", size: 16))
+                        
+                        Text(purchased ? "" : ")")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                        
+
+                    }
+                }
+                .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.92))
+                .clipShape(Capsule())
+            }
+            .disabled(purchased)
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+    
+    
+    
+    @ViewBuilder
+    private var celebrationOverlay: some View {
+        if let item = purchasedItem {
+            Color.white.opacity(0.6)
+                .ignoresSafeArea()
+//                    .transition(.opacity)
+                .onTapGesture {
+                    closeCelebration()
+                }
+                .overlay {
+                    ZStack {
+//                    Image(systemName: "sun.max.fill")
+                        Image("sunburst")
+                            .resizable()
+//                        .foregroundStyle(Color.white.opacity(0.3))
+                            .opacity(0.8)
+                            .frame(width: 600, height: 600)
+                            .rotationEffect(.degrees(showSunburst ? 360 : 0))
+                            .animation(.linear(duration: 10).repeatForever(autoreverses: false), value: showSunburst)
+                        
 //                            Image(systemName: "sparkles")
 //                            Image("sparkles")
 //                                .resizable()
@@ -2099,26 +2300,27 @@ private struct CapyShopSheet: View {
 //                                .opacity(showSunburst ? 0.8 : 0)
 //                                .scaleEffect(showSunburst ? 1.2 : 0.8)
 //                                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: showSunburst)
-                            
-                            Text(item.emoji)
-                                .font(.system(size: 120))
-                                .shadow(color: .white.opacity(0.5), radius: 20, x: 0, y: 10)
-                                .scaleEffect(showSunburst ? 1.0 : 0.1)
-                                .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showSunburst)
-                        }
+                        
+                        Text(item.emoji)
+                            .font(.system(size: 120))
+                            .shadow(color: .white.opacity(0.5), radius: 20, x: 0, y: 10)
+                            .scaleEffect(showSunburst ? 1.0 : 0.1)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: showSunburst)
                     }
-                    .zIndex(100)
-                    .transition(.opacity.animation(.easeInOut(duration: 0.5)))
-            }
-            
-            ForEach(flyingStats) { stat in
-                Text(stat.emoji)
-                    .font(.system(size: 32))
-                    .modifier(FlyingStatModifier(stat: stat) {
-                        flyingStats.removeAll(where: { $0.id == stat.id })
-                    })
-                    .zIndex(101)
-            }
+                }
+                .zIndex(100)
+                .transition(.opacity.animation(.easeInOut(duration: 0.5)))
+        }
+    }
+    
+    private var flyingStatsLayer: some View {
+        ForEach(flyingStats) { stat in
+            Text(stat.emoji)
+                .font(.system(size: 32))
+                .modifier(FlyingStatModifier(stat: stat) {
+                    flyingStats.removeAll(where: { $0.id == stat.id })
+                })
+                .zIndex(101)
         }
     }
     
@@ -2182,21 +2384,21 @@ private struct CapyShopSheet: View {
         }
     }
     
-    private func effectText(for item: CapyShopItem) -> String {
-        guard let stat = item.statReward else {
-            return "effect: cosmetic only (no stat boost)"
-        }
-        switch stat {
-        case "🍋":
-            return "effect: +1 energy (🍋)"
-        case "🛁":
-            return "effect: +1 hygiene (🛁)"
-        case "😁":
-            return "effect: +1 mood (😁)"
-        default:
-            return "effect: +1 stat (\(stat))"
-        }
-    }
+//    private func effectText(for item: CapyShopItem) -> String {
+//        guard let stat = item.statReward else {
+//            return "effect: cosmetic only (no stat boost)"
+//        }
+//        switch stat {
+//        case "🍋":
+//            return "effect: +1 energy (🍋)"
+//        case "🛁":
+//            return "effect: +1 hygiene (🛁)"
+//        case "😁":
+//            return "effect: +1 mood (😁)"
+//        default:
+//            return "effect: +1 stat (\(stat))"
+//        }
+//    }
     
     private func effectText2(for item: CapyShopItem) -> String {
         guard let stat = item.statReward else { return "" }
@@ -2234,18 +2436,18 @@ struct ExplodingCoinModifier: ViewModifier {
                     isVisible = true
                     isExploded = true
                 }
-
+                
                 let magnetDelay = Double.random(in: 0.05...0.4)
                 let magnetDuration = 0.6
-
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + magnetDelay) {
                     withAnimation(.easeIn(duration: 0.6)) {
                         isMagnetized = true
                     }
                 }
-
+                
                 let totalDuration = 0.3 + magnetDelay + magnetDuration
-
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + totalDuration) {
                     onComplete()
                 }
