@@ -272,6 +272,10 @@ struct HomeView2: View {
             set: { liveActivityGoalScopeRaw = $0.rawValue }
         )
     }
+    
+    private var isCapyCrying: Bool {
+        stats.contains { $0.points <= 0 }
+    }
 
     private var homeContent: some View {
         GeometryReader { geometry in
@@ -316,6 +320,7 @@ struct HomeView2: View {
                 shopLastDayKey = ""
                 store.awardBonusCoins(100)
                 refreshDailyShopIfNeeded(force: true)
+//                shopItems = Array(CapyShopItem.catalog.shuffled().prefix(5))
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             },
             onUnlockAll: {
@@ -1036,7 +1041,7 @@ struct HomeView2: View {
             
             
             ZStack {
-                Image(isCapySleeping ? "capy_sleep" : "capy_sit")
+                Image(isCapyCrying ? "capy_cry" : isCapySleeping ? "capy_sleep" : "capy_sit")
                     .resizable()
                     .scaledToFill()
                     .frame(width: UIScreen.main.bounds.width)
@@ -2347,6 +2352,7 @@ private struct CapyShopSheet: View {
             celebrationOverlay
             flyingStatsLayer
         }
+        .ignoresSafeArea()
     }
         
     private var mainContent: some View {
@@ -2452,25 +2458,25 @@ private struct CapyShopSheet: View {
 //                  onBuy(item)
                 handleBuy(item)
             } label: {
-                HStack {
-                    Text(purchased ? "bought" : "buy")
-                        .font(.custom("Gaegu-Regular", size: 18))
+                HStack(spacing: purchased ? 0 : 6) {
+//                    Text(purchased ? "bought" : "")
+//                        .font(.custom("Gaegu-Regular", size: 18))
                     
-                    HStack(spacing: purchased ? 0 : 2) {
-                        Text(purchased ? "" : "(")
-                            .font(.custom("Gaegu-Regular", size: 16))
+//                    HStack(spacing: purchased ? 0 : 2) {
+//                        Text(purchased ? "" : "(")
+//                            .font(.custom("Gaegu-Regular", size: 16))
                         
                         Text(purchased ? "" : "🪙")
-                            .font(.custom("Gaegu-Regular", size: 8))
+                            .font(.custom("Gaegu-Regular", size: 12))
                         
-                        Text(purchased ? "" : String(item.cost))
-                            .font(.custom("Gaegu-Regular", size: 16))
+                        Text(purchased ? "bought" : String(item.cost))
+                            .font(.custom("Gaegu-Regular", size: 20))
                         
-                        Text(purchased ? "" : ")")
-                            .font(.custom("Gaegu-Regular", size: 16))
+//                        Text(purchased ? "" : ")")
+//                            .font(.custom("Gaegu-Regular", size: 16))
                         
 
-                    }
+//                    }
                 }
                 .foregroundStyle(purchased ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
                 .padding(.horizontal, 14)
