@@ -317,6 +317,12 @@ struct HomeView2: View {
                 store.awardBonusCoins(100)
                 refreshDailyShopIfNeeded(force: true)
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            },
+            onUnlockAll: {
+                let allIDs = CapyShopItem.catalog.map { $0.id }
+                purchasedShopItemsCSV = allIDs.joined(separator: ",")
+                store.awardBonusCoins(500)
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             }
         )
         .presentationDetents([.medium, .large])
@@ -577,7 +583,6 @@ struct HomeView2: View {
                 .clipShape(Capsule())
             }
             .padding(.leading, 12)
-            
             
             Spacer()
             
@@ -1901,19 +1906,27 @@ struct HomeView2: View {
         case "sun_hat":
             return CapyDecoration(emoji: "👒", offset: CGSize(width: 10, height: -130), scale: 3.5, soundName: "cloth", rotation: -5)
         case "river_toy":
-            return CapyDecoration(emoji: "🦆", offset: CGSize(width: -100, height: 80), scale: 2.5, soundName: "quack", rotation: 0)
+            return CapyDecoration(emoji: "🦆", offset: CGSize(width: 160, height: -125), scale: 2.5, soundName: "quack", rotation: 0)
         case "citrus_treats":
-            return CapyDecoration(emoji: "🧣", offset: CGSize(width: 0, height: 90), scale: 3.0, soundName: "cloth", rotation: 0)
+            return CapyDecoration(emoji: "🍋", offset: CGSize(width: 140, height: 25), scale: 2.0, soundName: "chomp", rotation: 0)
         case "watermelon_bowl":
-            return CapyDecoration(emoji: "🍉", offset: CGSize(width: 80, height: 100), scale: 2.2, soundName: "chomp", rotation: -10)
+            return CapyDecoration(emoji: "🍉", offset: CGSize(width: 170, height: -20), scale: 2.2, soundName: "chomp", rotation: -10)
         case "cozy_lantern":
-            return CapyDecoration(emoji: "🏮", offset: CGSize(width: -120, height: -50), scale: 2.5, soundName: "click", rotation: 5)
+            return CapyDecoration(emoji: "🏮", offset: CGSize(width: -105, height: -130), scale: 2.5, soundName: "click", rotation: 5)
         case "rain_boots":
-            return CapyDecoration(emoji: "🥾", offset: CGSize(width: 60, height: 120), scale: 1.8, soundName: "stomp", rotation: 15)
+            return CapyDecoration(emoji: "🥾", offset: CGSize(width: 35, height: 90), scale: 1.8, soundName: "stomp", rotation: 15)
         case "bubble_bath":
-            return CapyDecoration(emoji: "🫧", offset: CGSize(width: -90, height: -100), scale: 2.5, soundName: "pop", rotation: -10)
+            return CapyDecoration(emoji: "🫧", offset: CGSize(width: -90, height: 30), scale: 2.0, soundName: "pop", rotation: -10)
         case "grooming_kit":
-            return CapyDecoration(emoji: "🪮", offset: CGSize(width: -130, height: 40), scale: 2.0, soundName: "brush", rotation: -45)
+            return CapyDecoration(emoji: "🪮", offset: CGSize(width: -100, height: -40), scale: 2.0, soundName: "brush", rotation: -20)
+        case "soft_blanket":
+            return CapyDecoration(emoji: "🧺", offset: CGSize(width: -20, height: 90), scale: 2.0, soundName: "cloth", rotation: 0)
+        case "leaf_salad":
+            return CapyDecoration(emoji: "🥬", offset: CGSize(width: 145, height: -65), scale: 2.0, soundName: "chomp", rotation: 10)
+        case "reed_mat":
+            return CapyDecoration(emoji: "🧶", offset: CGSize(width: -55, height: 10), scale: 2.0, soundName: "cloth", rotation: 0)
+        case "pond_pass":
+            return CapyDecoration(emoji: "🎟️", offset: CGSize(width: -155, height: -130), scale: 2.0, soundName: "paper", rotation: 15)
         default:
             return nil
         }
@@ -2320,6 +2333,7 @@ private struct CapyShopSheet: View {
     let isPurchased: (CapyShopItem) -> Bool
     let onBuy: (CapyShopItem) -> Void
     let onReset: () -> Void
+    let onUnlockAll: () -> Void
     
     @State private var purchasedItem: CapyShopItem? = nil
     @State private var showSunburst = false
@@ -2375,14 +2389,24 @@ private struct CapyShopSheet: View {
                         .foregroundStyle(Color.capyBrown.opacity(0.75))
                         .padding(.vertical, 14)
                     
-                    Button {
-                        onReset()
-                    } label: {
-                        Text("[DEBUG: RESET SHOP & +100 COINS")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(Color.gray.opacity(0.5))
-                            .padding(.bottom, 20)
+                    VStack(spacing: 8) {
+                        Button {
+                            onReset()
+                        } label: {
+                            Text("[DEBUG: RESET SHOP & +100 COINS")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.gray.opacity(0.5))
+                        }
+                        
+                        Button {
+                            onUnlockAll()
+                        } label: {
+                            Text("[DEBUG: UNLOCK ALL DECORATIONS]")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.red.opacity(0.6))
+                        }
                     }
+                    .padding(.bottom, 20)
                 }
                 .padding(.horizontal, 20)
             }

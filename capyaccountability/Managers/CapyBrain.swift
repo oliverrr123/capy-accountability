@@ -15,10 +15,11 @@ enum CapyResult {
 }
 
 class CapyBrain: ObservableObject {
-    private let endpoint = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
+//    private let endpoint = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
+    private let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
 
     private var apiKey: String {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "AIApiKey") as? String else {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "OpenaiApiKey") as? String else {
             print("No API Key")
             return ""
         }
@@ -97,7 +98,8 @@ class CapyBrain: ObservableObject {
         ]
         
         let parameters: [String: Any] = [
-            "model": "x-ai/grok-4.1-fast",
+//            "model": "x-ai/grok-4.1-fast",
+            "model": "gpt-4o-mini",
             "messages": [systemMessage] + messages,
             "tools": tools,
             "tool_choice": "auto"
@@ -176,7 +178,8 @@ class CapyBrain: ObservableObject {
                 ]
 
                 let parameters: [String: Any] = [
-                    "model": "x-ai/grok-4.1-fast",
+//                    "model": "x-ai/grok-4.1-fast",
+                    "model": "gpt-4o-mini",
                     "messages": [systemMessage, userContext],
                     "stream": true
                 ]
@@ -267,7 +270,8 @@ class CapyBrain: ObservableObject {
         ]
 
         let parameters: [String: Any] = [
-            "model": "x-ai/grok-4.1-fast",
+//            "model": "x-ai/grok-4.1-fast",
+            "model": "gpt-4o-mini",
             "messages": [systemMessage, userContext]
         ]
 
