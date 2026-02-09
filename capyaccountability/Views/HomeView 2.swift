@@ -197,6 +197,10 @@ struct HomeView2: View {
     @AppStorage("capy_stat_hygiene") private var storedHygiene: Double = 3.0
     @AppStorage("capy_stat_mood") private var storedMood: Double = 3.0
     @AppStorage("capy_last_decay_ts") private var lastDecayTimestamp: Double = Date().timeIntervalSince1970
+    @AppStorage("capy_reminders_enabled") private var remindersEnabled = false
+    @AppStorage("capy_daily_review_reminder_minutes") private var dailyReviewReminderMinutes = 20 * 60
+    @AppStorage("capy_weekly_review_reminder_minutes") private var weeklyReviewReminderMinutes = 18 * 60
+    @AppStorage("capy_weekly_review_reminder_weekday") private var weeklyReviewReminderWeekday = 1
 
     @State private var showAddAlert = false
     @State private var newTaskText = ""
@@ -229,10 +233,13 @@ struct HomeView2: View {
 
     @State private var showShopSheet = false
     @State private var showLiveActivitySheet = false
+    @State private var showReviewSheet = false
     @State private var shopItems: [CapyShopItem] = []
     @State private var currentShopDayKey = ""
     @State private var showShopAlert = false
     @State private var shopAlertMessage = ""
+    @State private var showReminderAlert = false
+    @State private var reminderAlertMessage = ""
 
     @State private var capyText = "yo bro, i'm capy. tap capyshop if you wanna grab me care stuff."
     
@@ -322,13 +329,24 @@ struct HomeView2: View {
             isEnabled: $liveActivityEnabled,
             mode: liveActivityModeSelection,
             goalScope: liveActivityGoalScopeSelection,
+            remindersEnabled: $remindersEnabled,
+            dailyReminderMinutes: $dailyReviewReminderMinutes,
+            weeklyReminderMinutes: $weeklyReviewReminderMinutes,
+            weeklyReminderWeekday: $weeklyReviewReminderWeekday,
             pendingDailyCount: pendingDailyTasks.count,
             pendingOtherCount: pendingNonDailyTasks.count
         ) {
+            syncReminders()
             syncLiveActivity()
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)
+    }
+
+    private var reviewSheetContent: some View {
+        ReviewSheet(store: store)
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.hidden)
     }
 
     var body: some View {
@@ -384,16 +402,25 @@ struct HomeView2: View {
         } message: {
             Text(shopAlertMessage)
         }
+        .alert("Reminders", isPresented: $showReminderAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(reminderAlertMessage)
+        }
         .sheet(isPresented: $showShopSheet) {
             shopSheetContent
         }
         .sheet(isPresented: $showLiveActivitySheet) {
             settingsSheetContent
         }
+        .sheet(isPresented: $showReviewSheet) {
+            reviewSheetContent
+        }
         .onAppear {
             balanceDisplay = Double(store.stats.coins)
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
+            syncReminders()
             syncLiveActivity()
             checkDecay()
         }
@@ -750,10 +777,39 @@ struct HomeView2: View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
+
+            HStack(spacing: 4) {
+                Text("lvl \(store.progressionLevel)")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                Text(store.progressionTitle)
+                    .font(.custom("Gaegu-Regular", size: 16))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.capyDarkBrown)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(.white.opacity(0.9))
+            .clipShape(Capsule())
             
             Spacer()
 
             HStack(spacing: 10) {
+                Button {
+                    showReviewSheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.text.magnifyingglass")
+                        Text("review")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                    }
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.92))
+                    .clipShape(Capsule())
+                }
+
                 Button {
                     showLiveActivitySheet = true
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -1119,8 +1175,10 @@ struct HomeView2: View {
         
         if willBeDone {
             isCollectingCoins = true
+            let oldLevel = store.progressionLevel
             
             store.toggleTask(task)
+            let newLevel = store.progressionLevel
             
             let rewardAmount = task.coinReward
             let rewardStat = task.statReward
@@ -1129,7 +1187,9 @@ struct HomeView2: View {
             
             triggerReward(at: location, amount: totalReward)
             if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
-            if comboResult.bonus > 0 {
+            if newLevel > oldLevel {
+                capyText = "level up! you're now lvl \(newLevel) (\(store.progressionTitle))."
+            } else if comboResult.bonus > 0 {
                 capyText = "combo x\(comboResult.streak)! +\(comboResult.bonus) bonus coins. you finished \"\(task.title)\"."
             } else {
                 capyText = "nice work bro, you finished \"\(task.title)\"."
@@ -1696,6 +1756,28 @@ struct HomeView2: View {
         }
     }
 
+    private func syncReminders() {
+        Task {
+            await ReminderScheduler.shared.syncReminders(
+                isEnabled: remindersEnabled,
+                dailyReminderMinutes: dailyReviewReminderMinutes,
+                weeklyReminderMinutes: weeklyReviewReminderMinutes,
+                weeklyWeekday: weeklyReviewReminderWeekday
+            )
+
+            if remindersEnabled {
+                let granted = await ReminderScheduler.shared.requestPermissionIfNeeded()
+                if !granted {
+                    await MainActor.run {
+                        remindersEnabled = false
+                        reminderAlertMessage = "notifications are off in iOS settings, so reminders were not enabled."
+                        showReminderAlert = true
+                    }
+                }
+            }
+        }
+    }
+
     private func syncLiveActivity(isAwayOverride: Bool? = nil) {
         let isAway = isAwayOverride ?? (scenePhase != .active)
         let snapshot = makeLiveActivitySnapshot(isAway: isAway)
@@ -1892,12 +1974,26 @@ private struct SettingsSheet: View {
     @Binding var isEnabled: Bool
     @Binding var mode: CapyLiveActivityMode
     @Binding var goalScope: CapyLiveActivityGoalScope
+    @Binding var remindersEnabled: Bool
+    @Binding var dailyReminderMinutes: Int
+    @Binding var weeklyReminderMinutes: Int
+    @Binding var weeklyReminderWeekday: Int
     
     @Namespace private var animationNamespace
     
     let pendingDailyCount: Int
     let pendingOtherCount: Int
     let onApply: () -> Void
+
+    private let weekdayOptions: [(value: Int, title: String)] = [
+        (1, "sunday"),
+        (2, "monday"),
+        (3, "tuesday"),
+        (4, "wednesday"),
+        (5, "thursday"),
+        (6, "friday"),
+        (7, "saturday")
+    ]
     
 //    init(isEnabled: Binding<Bool>,
 //         mode: Binding<CapyLiveActivityMode>,
@@ -1930,6 +2026,8 @@ private struct SettingsSheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 28) {
                     profileSection
+                    Divider().padding(.horizontal, 20)
+                    remindersSection
                     Divider().padding(.horizontal, 20)
                     liveActivitySection
                 }
@@ -1997,6 +2095,91 @@ private struct SettingsSheet: View {
         .padding(.horizontal, 20)
         .opacity(isEnabled ? 1.0 : 0.6) // !!!
         .animation(.spring, value: isEnabled)
+    }
+
+    private var remindersSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("reminders")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+                Spacer()
+                Toggle("", isOn: $remindersEnabled)
+                    .tint(Color.green)
+                    .labelsHidden()
+            }
+
+            Text("Local notifications for daily and weekly review.")
+                .font(.custom("Gaegu-Regular", size: 20))
+                .foregroundStyle(Color.capyBrown.opacity(0.8))
+
+            if remindersEnabled {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("daily review")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyBrown)
+                        Spacer()
+                        DatePicker(
+                            "",
+                            selection: timeBinding(minutes: $dailyReminderMinutes),
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                    }
+
+                    HStack {
+                        Text("weekly review")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyBrown)
+                        Spacer()
+                        Picker("weekday", selection: $weeklyReminderWeekday) {
+                            ForEach(weekdayOptions, id: \.value) { option in
+                                Text(option.title).tag(option.value)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+
+                    HStack {
+                        Text("weekly time")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyBrown)
+                        Spacer()
+                        DatePicker(
+                            "",
+                            selection: timeBinding(minutes: $weeklyReminderMinutes),
+                            displayedComponents: .hourAndMinute
+                        )
+                        .labelsHidden()
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(.horizontal, 20)
+        .opacity(remindersEnabled ? 1.0 : 0.7)
+        .animation(.spring, value: remindersEnabled)
+    }
+
+    private func timeBinding(minutes: Binding<Int>) -> Binding<Date> {
+        Binding<Date>(
+            get: {
+                let clamped = max(0, min(minutes.wrappedValue, 23 * 60 + 59))
+                let hour = clamped / 60
+                let minute = clamped % 60
+                var components = DateComponents()
+                components.hour = hour
+                components.minute = minute
+                return Calendar.current.date(from: components) ?? Date()
+            },
+            set: { newDate in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: newDate)
+                let hour = parts.hour ?? 0
+                let minute = parts.minute ?? 0
+                minutes.wrappedValue = (hour * 60) + minute
+            }
+        )
     }
     
     private var liveActivityPickers: some View {

@@ -7,6 +7,7 @@ final class CapyStore: ObservableObject {
     @Published private(set) var goals: UserGoals?
     @Published private(set) var tasks: [CapyTask]
     @Published private(set) var stats: CapyStats
+    @Published private(set) var completionHistory: [CapyCompletionEvent]
 
     private let storageKey = "capy_store_state_v1"
     private let calendar = Calendar.current
@@ -16,6 +17,7 @@ final class CapyStore: ObservableObject {
         self.goals = nil
         self.tasks = []
         self.stats = CapyStats()
+        self.completionHistory = []
 
         if loadFromDisk {
             load()
@@ -31,13 +33,20 @@ final class CapyStore: ObservableObject {
             goals = decoded.goals
             tasks = decoded.tasks
             stats = decoded.stats
+            completionHistory = decoded.completionHistory
         } catch {
             print("Failed to load CapyStore: \(error)")
         }
     }
 
     func save() {
-        let state = CapyStoreState(profile: profile, goals: goals, tasks: tasks, stats: stats)
+        let state = CapyStoreState(
+            profile: profile,
+            goals: goals,
+            tasks: tasks,
+            stats: stats,
+            completionHistory: completionHistory
+        )
         do {
             let data = try JSONEncoder().encode(state)
             UserDefaults.standard.set(data, forKey: storageKey)
@@ -99,15 +108,24 @@ final class CapyStore: ObservableObject {
 
     func toggleTask(_ task: CapyTask) {
         guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+        let oldCompletedAt = tasks[index].completedAt
         tasks[index].isDone.toggle()
         if tasks[index].isDone {
-            tasks[index].completedAt = Date()
+            let completedAt = Date()
+            tasks[index].completedAt = completedAt
             stats.coins += tasks[index].coinReward
+            let gainedXP = xpReward(for: tasks[index].frequency)
+            stats.xp += gainedXP
+            stats.totalCompletions += 1
+            appendCompletionEvent(for: tasks[index], xpReward: gainedXP, at: completedAt)
             recordDailyCompletionIfNeeded()
         } else {
             tasks[index].completedAt = nil
-            stats.coins -= tasks[index].coinReward
-//            if stats.coins Ok, but now there is the issue that when I add it, it instantly adds 10 for some reason, but then, after only the coins flow in, it adds the actual coins. < 0 { stats.coins = 0 }
+            stats.coins = max(stats.coins - tasks[index].coinReward, 0)
+            let revertedXP = xpReward(for: tasks[index].frequency)
+            stats.xp = max(stats.xp - revertedXP, 0)
+            stats.totalCompletions = max(stats.totalCompletions - 1, 0)
+            removeCompletionEvent(taskID: tasks[index].id, completedAt: oldCompletedAt)
         }
         updateMood()
         save()
@@ -168,18 +186,137 @@ final class CapyStore: ObservableObject {
         return !daily.isEmpty && daily.allSatisfy { $0.isDone }
     }
 
-    private func applyCompletionRewards(for task: CapyTask) {
-        stats.coins += rewardValue(for: task.frequency)
+    var progressionLevel: Int {
+        progressionState.level
     }
 
-    private func rewardValue(for frequency: TaskFrequency) -> Int {
+    var xpIntoCurrentLevel: Int {
+        progressionState.xpIntoLevel
+    }
+
+    var xpNeededForNextLevel: Int {
+        progressionState.xpNeededForNextLevel
+    }
+
+    var progressionToNextLevel: Double {
+        guard progressionState.xpNeededForNextLevel > 0 else { return 0 }
+        return min(
+            max(Double(progressionState.xpIntoLevel) / Double(progressionState.xpNeededForNextLevel), 0),
+            1
+        )
+    }
+
+    var progressionTitle: String {
+        switch progressionLevel {
+        case 1...2: return "tiny capy"
+        case 3...4: return "focused capy"
+        case 5...7: return "river captain"
+        case 8...11: return "hot spring legend"
+        default: return "goal guardian"
+        }
+    }
+
+    var unlockedProgressionPerks: [String] {
+        var perks: [String] = ["lvl 1: capy badge"]
+        if progressionLevel >= 3 { perks.append("lvl 3: combo bonus glow") }
+        if progressionLevel >= 5 { perks.append("lvl 5: river captain title") }
+        if progressionLevel >= 8 { perks.append("lvl 8: hot spring aura") }
+        if progressionLevel >= 12 { perks.append("lvl 12: goal guardian title") }
+        return perks
+    }
+
+    func reviewSummary(for period: CapyReviewPeriod, now: Date = Date()) -> CapyReviewSummary {
+        let filteredEvents = events(for: period, now: now)
+        let title: String
+
+        switch period {
+        case .daily:
+            title = "today"
+        case .weekly:
+            title = "this week"
+        }
+
+        return CapyReviewSummary(
+            period: period,
+            title: title,
+            completedCount: filteredEvents.count,
+            coinTotal: filteredEvents.reduce(0) { $0 + $1.coinReward },
+            xpTotal: filteredEvents.reduce(0) { $0 + $1.xpReward },
+            events: filteredEvents
+        )
+    }
+
+    private var progressionState: (level: Int, xpIntoLevel: Int, xpNeededForNextLevel: Int) {
+        var level = 1
+        var remainingXP = max(stats.xp, 0)
+        var needed = xpNeededToAdvance(from: level)
+
+        while remainingXP >= needed {
+            remainingXP -= needed
+            level += 1
+            needed = xpNeededToAdvance(from: level)
+        }
+
+        return (level, remainingXP, needed)
+    }
+
+    private func xpNeededToAdvance(from level: Int) -> Int {
+        80 + ((max(level, 1) - 1) * 20)
+    }
+
+    private func xpReward(for frequency: TaskFrequency) -> Int {
         switch frequency {
-        case .daily: return 5
-        case .weekly: return 10
-        case .monthly: return 20
-        case .yearly: return 40
-        case .decade: return 60
-        case .longTerm: return 30
+        case .daily: return 12
+        case .weekly: return 26
+        case .monthly: return 40
+        case .yearly: return 75
+        case .decade: return 110
+        case .longTerm: return 140
+        }
+    }
+
+    private func appendCompletionEvent(for task: CapyTask, xpReward: Int, at completedAt: Date) {
+        let event = CapyCompletionEvent(
+            taskID: task.id,
+            title: task.title,
+            frequency: task.frequency,
+            coinReward: task.coinReward,
+            xpReward: xpReward,
+            completedAt: completedAt
+        )
+        completionHistory.append(event)
+
+        let maxEvents = 1000
+        if completionHistory.count > maxEvents {
+            completionHistory.removeFirst(completionHistory.count - maxEvents)
+        }
+    }
+
+    private func removeCompletionEvent(taskID: UUID, completedAt: Date?) {
+        guard let completedAt else { return }
+        let graceWindow: TimeInterval = 5
+
+        if let index = completionHistory.lastIndex(where: {
+            $0.taskID == taskID &&
+            abs($0.completedAt.timeIntervalSince(completedAt)) <= graceWindow
+        }) {
+            completionHistory.remove(at: index)
+        }
+    }
+
+    private func events(for period: CapyReviewPeriod, now: Date) -> [CapyCompletionEvent] {
+        switch period {
+        case .daily:
+            return completionHistory
+                .filter { calendar.isDate($0.completedAt, inSameDayAs: now) }
+                .sorted { $0.completedAt > $1.completedAt }
+        case .weekly:
+            guard let weekInterval = calendar.dateInterval(of: .weekOfYear, for: now) else {
+                return []
+            }
+            return completionHistory
+                .filter { weekInterval.contains($0.completedAt) }
+                .sorted { $0.completedAt > $1.completedAt }
         }
     }
 
