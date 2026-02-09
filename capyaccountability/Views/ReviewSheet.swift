@@ -29,13 +29,19 @@ struct ReviewSheet: View {
                 .frame(width: 60, height: 6)
                 .padding(.top, 8)
 
-            header
-            periodPicker
-            summaryCards
-            progressionSection
-            eventsSection
+            ScrollView {
+                VStack(spacing: 14) {
+                    header
+                    periodPicker
+                    summaryCards
+                    progressionSection
+                    eventsSection
+                }
+                .padding(.bottom, 8)
+            }
+            .scrollIndicators(.hidden)
 
-            Spacer(minLength: 8)
+//            Spacer(minLength: 8)
 
             Button {
                 dismiss()

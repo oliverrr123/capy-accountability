@@ -350,6 +350,65 @@ struct HomeView2: View {
     }
 
     var body: some View {
+        logicLayer
+            .alert("New Goal", isPresented: $showAddAlert) {
+                TextField("Enter goal...", text: $newTaskText)
+                Button("Add", action: addNewTask)
+                Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog("Edit task", isPresented: $showActionSheet) {
+                Button("Edit text") {
+                    if let task = taskToEdit {
+                        editTaskText = task.title
+                        showEditAlert = true
+                    }
+                }
+                
+                Button("Delete", role: .destructive) {
+                    if let task = taskToEdit {
+                        deleteTask(task)
+                    }
+                }
+                
+                Button("Cancel", role: .cancel) {}
+            }
+            .alert("Edit Goal", isPresented: $showEditAlert) {
+                TextField("Goal text...", text: $editTaskText)
+                Button("Save") {
+                    if let task = taskToEdit, !editTaskText.isEmpty {
+                        store.deleteTask(task)
+                        store.addTask(title: editTaskText, frequency: selectedFrequency)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+        //        .alert("Chat with Capy", isPresented: $showChatAlert) {
+        //            TextField("Say something...", text: $chatInputText)
+        //            Button("Send") { sendMessageToCapy() }
+        //            Button("Cancel", role: .cancel) {}
+        //        }
+            .alert("CapyShop", isPresented: $showShopAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(shopAlertMessage)
+            }
+            .alert("Reminders", isPresented: $showReminderAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(reminderAlertMessage)
+            }
+            .sheet(isPresented: $showShopSheet) {
+                shopSheetContent
+            }
+            .sheet(isPresented: $showLiveActivitySheet) {
+                settingsSheetContent
+            }
+            .sheet(isPresented: $showReviewSheet) {
+                reviewSheetContent
+            }
+    }
+    
+    private var logicLayer: some View {
         homeContent
         .onReceive(Publishers.keyboardHeight) { self.keyboardHeight = $0 }
         .ignoresSafeArea()
@@ -361,61 +420,7 @@ struct HomeView2: View {
             sendVoiceMessage(finalTranscript)
             speechRecognizer.transcript = ""
         }
-        .alert("New Goal", isPresented: $showAddAlert) {
-            TextField("Enter goal...", text: $newTaskText)
-            Button("Add", action: addNewTask)
-            Button("Cancel", role: .cancel) {}
-        }
-        .confirmationDialog("Edit task", isPresented: $showActionSheet) {
-            Button("Edit text") {
-                if let task = taskToEdit {
-                    editTaskText = task.title
-                    showEditAlert = true
-                }
-            }
-
-            Button("Delete", role: .destructive) {
-                if let task = taskToEdit {
-                    deleteTask(task)
-                }
-            }
-
-            Button("Cancel", role: .cancel) {}
-        }
-        .alert("Edit Goal", isPresented: $showEditAlert) {
-            TextField("Goal text...", text: $editTaskText)
-            Button("Save") {
-                if let task = taskToEdit, !editTaskText.isEmpty {
-                    store.deleteTask(task)
-                    store.addTask(title: editTaskText, frequency: selectedFrequency)
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        }
-//        .alert("Chat with Capy", isPresented: $showChatAlert) {
-//            TextField("Say something...", text: $chatInputText)
-//            Button("Send") { sendMessageToCapy() }
-//            Button("Cancel", role: .cancel) {}
-//        }
-        .alert("CapyShop", isPresented: $showShopAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(shopAlertMessage)
-        }
-        .alert("Reminders", isPresented: $showReminderAlert) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(reminderAlertMessage)
-        }
-        .sheet(isPresented: $showShopSheet) {
-            shopSheetContent
-        }
-        .sheet(isPresented: $showLiveActivitySheet) {
-            settingsSheetContent
-        }
-        .sheet(isPresented: $showReviewSheet) {
-            reviewSheetContent
-        }
+        
         .onAppear {
             balanceDisplay = Double(store.stats.coins)
             refreshDailyShopIfNeeded(force: true)
@@ -541,22 +546,38 @@ struct HomeView2: View {
     
     private var statsAndChatButton: some View {
         HStack(alignment: .bottom, spacing: 0) {
-            VStack(spacing: 12) {
-                ForEach(stats) { stat in
-                    VStack(spacing: 0) {
-                        Text(stat.emoji)
-                            .font(.system(size: 22))
-                        Text("\(Int(stat.points))/5")
-                            .font(.custom("Gaegu-Regular", size: 14))
-                            .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+            VStack(alignment: .leading) {
+                VStack(spacing: 12) {
+                    ForEach(stats) { stat in
+                        VStack(spacing: 0) {
+                            Text(stat.emoji)
+                                .font(.system(size: 22))
+                            Text("\(Int(stat.points))/5")
+                                .font(.custom("Gaegu-Regular", size: 14))
+                                .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+                        }
                     }
                 }
+                .padding(.vertical, 12)
+                .padding(.horizontal, 8)
+                .background(.white.opacity(0.9))
+                .clipShape(Capsule())
+                
+                HStack(spacing: 4) {
+                    Text("lvl \(store.progressionLevel)")
+                        .font(.custom("Gaegu-Regular", size: 20))
+                    Text(store.progressionTitle)
+                        .font(.custom("Gaegu-Regular", size: 16))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Color.capyDarkBrown)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(.white.opacity(0.9))
+                .clipShape(Capsule())
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 8)
-            .background(.white.opacity(0.9))
-            .clipShape(Capsule())
             .padding(.leading, 12)
+            
             
             Spacer()
             
@@ -777,19 +798,6 @@ struct HomeView2: View {
                     .transition(.scale.combined(with: .opacity))
                 }
             }
-
-            HStack(spacing: 4) {
-                Text("lvl \(store.progressionLevel)")
-                    .font(.custom("Gaegu-Regular", size: 20))
-                Text(store.progressionTitle)
-                    .font(.custom("Gaegu-Regular", size: 16))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(Color.capyDarkBrown)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(.white.opacity(0.9))
-            .clipShape(Capsule())
             
             Spacer()
 
@@ -800,12 +808,12 @@ struct HomeView2: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.text.magnifyingglass")
-                        Text("review")
-                            .font(.custom("Gaegu-Regular", size: 20))
+//                        Text("review")
+//                            .font(.custom("Gaegu-Regular", size: 20))
                     }
                     .foregroundStyle(Color.capyDarkBrown)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                     .background(.white.opacity(0.92))
                     .clipShape(Capsule())
                 }
@@ -836,11 +844,11 @@ struct HomeView2: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "storefront.fill")
-                        Text("capyshop")
-                            .font(.custom("Gaegu-Regular", size: 20))
+//                        Text("capyshop")
+//                            .font(.custom("Gaegu-Regular", size: 20))
                     }
                     .foregroundStyle(Color.capyDarkBrown)
-                    .padding(.horizontal, 12)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 8)
                     .background(.white.opacity(0.92))
                     .clipShape(Capsule())
