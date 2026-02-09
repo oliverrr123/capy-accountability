@@ -985,7 +985,7 @@ struct HomeView2: View {
                 
                     .onTapGesture {
                         if !showChatInput {
-                            handleCapyTap(
+                            handleCapyTap()
                         } else {
                             closeChat()
                         }
