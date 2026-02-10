@@ -2462,6 +2462,8 @@ private struct CapyShopSheet: View {
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 10) {
+                    freezeShopSection
+
                     ForEach(items) { item in
                         shopItemRow(item)
                     }
@@ -2503,7 +2505,50 @@ private struct CapyShopSheet: View {
             }
         )
     }
-    
+
+    private var freezeShopSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("freeze protectors (always available)")
+                .font(.custom("Gaegu-Regular", size: 18))
+                .foregroundStyle(Color.capyBrown.opacity(0.9))
+
+            HStack(spacing: 12) {
+                Text("❄️")
+                    .font(.system(size: 30))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Freeze Protector")
+                        .font(.custom("Gaegu-Regular", size: 22))
+                        .foregroundStyle(Color.capyDarkBrown)
+                    Text("streak safety stock: x\(freezeCount)")
+                        .font(.custom("Gaegu-Regular", size: 16))
+                        .foregroundStyle(Color.capyBrown.opacity(0.85))
+                }
+
+                Spacer()
+
+                Button {
+                    onBuyFreeze()
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("🪙")
+                            .font(.custom("Gaegu-Regular", size: 12))
+                        Text(String(freezeCost))
+                            .font(.custom("Gaegu-Regular", size: 20))
+                    }
+                    .foregroundStyle(Color.capyBrown)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.92))
+                    .clipShape(Capsule())
+                }
+            }
+            .padding(12)
+            .background(Color.white.opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
     private func shopItemRow(_ item: CapyShopItem) -> some View {
         HStack(spacing: 12) {
             Text(item.emoji)
@@ -2787,85 +2832,6 @@ private struct ChallengeSheet: View {
                     .padding(.horizontal, 20)
                 }
             }
-
-            Spacer(minLength: 0)
-        }
-        .background(Color.capyBeige.opacity(0.96))
-    }
-}
-
-private struct FreezeShopSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let balance: Int
-    let freezeCount: Int
-    let itemCost: Int
-    let onBuy: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Capsule()
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 60, height: 6)
-                .padding(.top, 10)
-
-            Text("freeze shop")
-                .font(.custom("Gaegu-Regular", size: 30))
-                .foregroundStyle(Color.capyDarkBrown)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-
-            Text("always available. freeze protectors auto-save streak when you miss a day.")
-                .font(.custom("Gaegu-Regular", size: 19))
-                .foregroundStyle(Color.capyBrown)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-
-            HStack(spacing: 12) {
-                Text("🪙 \(balance)")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-                Text("❄️ x\(freezeCount)")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-            }
-            .padding(.vertical, 4)
-
-            VStack(spacing: 10) {
-                Text("Freeze Protector")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-
-                Text("cost: \(itemCost) coins")
-                    .font(.custom("Gaegu-Regular", size: 19))
-                    .foregroundStyle(Color.capyBrown)
-
-                Button {
-                    onBuy()
-                } label: {
-                    Text("buy +1")
-                        .font(.custom("Gaegu-Regular", size: 22))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.capyBlue)
-                        .clipShape(Capsule())
-                }
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.9))
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .padding(.horizontal, 20)
-
-            Button {
-                dismiss()
-            } label: {
-                Text("done")
-                    .font(.custom("Gaegu-Regular", size: 20))
-                    .foregroundStyle(Color.capyBrown)
-            }
-            .padding(.top, 8)
 
             Spacer(minLength: 0)
         }
