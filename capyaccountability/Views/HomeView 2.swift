@@ -232,6 +232,7 @@ struct HomeView2: View {
     @State private var selectedFrequency: TaskFrequency = .daily
 
     @State private var showShopSheet = false
+    @State private var showChallengeSheet = false
     @State private var showLiveActivitySheet = false
     @State private var showReviewSheet = false
     @State private var shopItems: [CapyShopItem] = []
@@ -312,9 +313,19 @@ struct HomeView2: View {
         CapyShopSheet(
             dayLabel: shopDayLabel(from: currentShopDayKey),
             balance: store.stats.coins,
+            freezeCount: store.stats.freezeProtectors,
+            freezeCost: CapyStore.freezeProtectorCost,
             items: shopItems,
             isPurchased: { isPurchased($0) },
             onBuy: { buyShopItem($0) },
+            onBuyFreeze: {
+                if store.buyFreezeProtector() {
+                    capyText = "freeze protector stocked. streak safety is now x\(store.stats.freezeProtectors)."
+                } else {
+                    shopAlertMessage = "not enough coins for a freeze protector."
+                    showShopAlert = true
+                }
+            },
             onReset: {
                 purchasedShopItemsCSV = ""
                 shopLastDayKey = ""
@@ -328,6 +339,19 @@ struct HomeView2: View {
                 purchasedShopItemsCSV = allIDs.joined(separator: ",")
                 store.awardBonusCoins(500)
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            }
+        )
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.hidden)
+    }
+
+    private var challengeSheetContent: some View {
+        ChallengeSheet(
+            challenge: store.challenge,
+            balance: store.stats.coins,
+            onStart: { length in
+                store.startChallenge(length)
+                capyText = "challenge started: \(length.title). check in every day."
             }
         )
         .presentationDetents([.medium, .large])
@@ -411,6 +435,9 @@ struct HomeView2: View {
             .sheet(isPresented: $showShopSheet) {
                 shopSheetContent
             }
+            .sheet(isPresented: $showChallengeSheet) {
+                challengeSheetContent
+            }
             .sheet(isPresented: $showLiveActivitySheet) {
                 settingsSheetContent
             }
@@ -433,18 +460,26 @@ struct HomeView2: View {
         }
         
         .onAppear {
+            let resetMessages = store.resetDailyIfNeeded()
             balanceDisplay = Double(store.stats.coins)
             refreshDailyShopIfNeeded(force: true)
             refreshCapySleepState()
             syncReminders()
             syncLiveActivity()
             checkDecay()
+            if let message = resetMessages.last {
+                capyText = message
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
+                let resetMessages = store.resetDailyIfNeeded()
                 checkDecay()
                 refreshDailyShopIfNeeded()
                 refreshCapySleepState()
+                if let message = resetMessages.last {
+                    capyText = message
+                }
             }
             syncLiveActivity(isAwayOverride: newPhase != .active)
         }
@@ -475,14 +510,11 @@ struct HomeView2: View {
             maybeAskGoalCheckIn()
         }
         .onReceive(capySleepTimer) { _ in
-            refreshCapySleepState()
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                refreshDailyShopIfNeeded()
-                refreshCapySleepState()
+            let resetMessages = store.resetDailyIfNeeded()
+            if let message = resetMessages.last {
+                capyText = message
             }
-            syncLiveActivity(isAwayOverride: newPhase != .active)
+            refreshCapySleepState()
         }
     }
     
@@ -767,7 +799,7 @@ struct HomeView2: View {
     
     private var topBar: some View {
         HStack {
-            HStack {
+            HStack(spacing: 8) {
                 Image("coin")
                     .resizable()
                     .scaledToFit()
@@ -789,6 +821,28 @@ struct HomeView2: View {
                     .font(Font.custom("Gaegu-Regular", size: 28))
                     .foregroundStyle(.white)
                     .contentTransition(.numericText(value: balanceDisplay))
+
+                HStack(spacing: 2) {
+                    Image(systemName: "snowflake")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("x\(store.stats.freezeProtectors)")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                }
+                .foregroundStyle(Color.capyDarkBrown)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.white.opacity(0.92))
+                .clipShape(Capsule())
+
+                if store.challenge.isActive {
+                    Text("🏁 \(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.capyDarkBrown)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                        .background(.white.opacity(0.92))
+                        .clipShape(Capsule())
+                }
 
                 if comboStreak >= 2 {
                     HStack(spacing: 0) {
@@ -839,6 +893,20 @@ struct HomeView2: View {
 //                        Text(liveActivityEnabled ? liveActivityMode.shortLabel : "live")
 //                            .font(.custom("Gaegu-Regular", size: 20))
                         Image(systemName: "gearshape.fill")
+                    }
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(.white.opacity(0.92))
+                    .clipShape(Capsule())
+                }
+
+                Button {
+                    showChallengeSheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flag.fill")
                     }
                     .foregroundStyle(Color.capyDarkBrown)
                     .padding(.horizontal, 8)
@@ -1014,12 +1082,13 @@ struct HomeView2: View {
                     .scaledToFit()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(capyText)
-                        .font(.custom("Gaegu-Regular", size: 21))
-                        .foregroundStyle(Color.capyDarkBrown)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .lineLimit(5)
-                        .minimumScaleFactor(0.8)
+                    ScrollView(.vertical, showsIndicators: true) {
+                        Text(capyText)
+                            .font(.custom("Gaegu-Regular", size: 21))
+                            .foregroundStyle(Color.capyDarkBrown)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
 //                    if thinkingState != .none {
 //                        HStack(spacing: 8) {
@@ -1195,7 +1264,7 @@ struct HomeView2: View {
             isCollectingCoins = true
             let oldLevel = store.progressionLevel
             
-            store.toggleTask(task)
+            let toggleResult = store.toggleTask(task)
             let newLevel = store.progressionLevel
             
             let rewardAmount = task.coinReward
@@ -1205,7 +1274,9 @@ struct HomeView2: View {
             
             triggerReward(at: location, amount: totalReward)
             if let stat = rewardStat { updateStat(emoji: stat, change: 1) }
-            if newLevel > oldLevel {
+            if let challengeMessage = toggleResult.challengeMessage {
+                capyText = challengeMessage
+            } else if newLevel > oldLevel {
                 capyText = "level up! you're now lvl \(newLevel) (\(store.progressionTitle))."
             } else if comboResult.bonus > 0 {
                 capyText = "combo x\(comboResult.streak)! +\(comboResult.bonus) bonus coins. you finished \"\(task.title)\"."
@@ -1220,7 +1291,7 @@ struct HomeView2: View {
                 }
             }
         } else {
-            store.toggleTask(task)
+            _ = store.toggleTask(task)
             resetCombo()
             
             let rewardStat = task.statReward
@@ -1712,6 +1783,8 @@ struct HomeView2: View {
         user name: \(userName).
         capy state: \(isCapySleeping ? "sleepy" : "awake").
         coins: \(Int(balanceDisplay)).
+        freeze protectors: \(store.stats.freezeProtectors).
+        challenge: \(store.challenge.isActive ? "\(store.challenge.length.title) \(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)" : "none active").
         capy stats: \(capyStats).
         user end goals: \(endGoalsText.isEmpty ? "none yet" : endGoalsText).
         done (\(completedTasks.count)): \(doneText.isEmpty ? "none" : doneText).
@@ -2334,9 +2407,12 @@ private struct SettingsSheet: View {
 private struct CapyShopSheet: View {
     let dayLabel: String
     let balance: Int
+    let freezeCount: Int
+    let freezeCost: Int
     let items: [CapyShopItem]
     let isPurchased: (CapyShopItem) -> Bool
     let onBuy: (CapyShopItem) -> Void
+    let onBuyFreeze: () -> Void
     let onReset: () -> Void
     let onUnlockAll: () -> Void
     
@@ -2624,6 +2700,176 @@ private struct CapyShopSheet: View {
     private func effectText2(for item: CapyShopItem) -> String {
         guard let stat = item.statReward else { return "" }
         return "(+\(stat))"
+    }
+}
+
+private struct ChallengeSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let challenge: CapyChallengeState
+    let balance: Int
+    let onStart: (CapyChallengeLength) -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 10)
+
+            Text("challenge mode")
+                .font(.custom("Gaegu-Regular", size: 30))
+                .foregroundStyle(Color.capyDarkBrown)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+
+            Text("check in daily for 7/14/30 days. completion gives bonus coins. miss a day and coins are deducted.")
+                .font(.custom("Gaegu-Regular", size: 19))
+                .foregroundStyle(Color.capyBrown)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+
+            HStack(spacing: 6) {
+                Text("🪙")
+                Text(String(balance))
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+            }
+
+            if challenge.isActive {
+                VStack(spacing: 8) {
+                    Text("active: \(challenge.length.title)")
+                        .font(.custom("Gaegu-Regular", size: 24))
+                        .foregroundStyle(Color.capyDarkBrown)
+                    Text("progress: \(challenge.completedCheckIns)/\(challenge.length.rawValue)")
+                        .font(.custom("Gaegu-Regular", size: 20))
+                        .foregroundStyle(Color.capyBrown)
+                    Text("bonus: +\(challenge.length.completionBonusCoins) coins")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.capyBrown)
+                    Text("miss penalty: -\(challenge.length.missPenaltyCoins) coins")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(Color.red.opacity(0.85))
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.9))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.horizontal, 20)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 10) {
+                        ForEach(CapyChallengeLength.allCases) { length in
+                            Button {
+                                onStart(length)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(length.title)
+                                            .font(.custom("Gaegu-Regular", size: 24))
+                                            .foregroundStyle(Color.capyDarkBrown)
+                                        Text("bonus +\(length.completionBonusCoins) • miss -\(length.missPenaltyCoins)")
+                                            .font(.custom("Gaegu-Regular", size: 17))
+                                            .foregroundStyle(Color.capyBrown)
+                                    }
+                                    Spacer()
+                                    Text("start")
+                                        .font(.custom("Gaegu-Regular", size: 19))
+                                        .foregroundStyle(Color.capyBrown)
+                                }
+                                .padding(12)
+                                .background(Color.white.opacity(0.9))
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .background(Color.capyBeige.opacity(0.96))
+    }
+}
+
+private struct FreezeShopSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let balance: Int
+    let freezeCount: Int
+    let itemCost: Int
+    let onBuy: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 10)
+
+            Text("freeze shop")
+                .font(.custom("Gaegu-Regular", size: 30))
+                .foregroundStyle(Color.capyDarkBrown)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+
+            Text("always available. freeze protectors auto-save streak when you miss a day.")
+                .font(.custom("Gaegu-Regular", size: 19))
+                .foregroundStyle(Color.capyBrown)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+
+            HStack(spacing: 12) {
+                Text("🪙 \(balance)")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+                Text("❄️ x\(freezeCount)")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+            }
+            .padding(.vertical, 4)
+
+            VStack(spacing: 10) {
+                Text("Freeze Protector")
+                    .font(.custom("Gaegu-Regular", size: 24))
+                    .foregroundStyle(Color.capyDarkBrown)
+
+                Text("cost: \(itemCost) coins")
+                    .font(.custom("Gaegu-Regular", size: 19))
+                    .foregroundStyle(Color.capyBrown)
+
+                Button {
+                    onBuy()
+                } label: {
+                    Text("buy +1")
+                        .font(.custom("Gaegu-Regular", size: 22))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.capyBlue)
+                        .clipShape(Capsule())
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(Color.white.opacity(0.9))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .padding(.horizontal, 20)
+
+            Button {
+                dismiss()
+            } label: {
+                Text("done")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                    .foregroundStyle(Color.capyBrown)
+            }
+            .padding(.top, 8)
+
+            Spacer(minLength: 0)
+        }
+        .background(Color.capyBeige.opacity(0.96))
     }
 }
 

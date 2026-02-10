@@ -23,6 +23,62 @@ enum TaskFrequency: String, Codable, CaseIterable {
     case longTerm
 }
 
+enum CapyChallengeLength: Int, Codable, CaseIterable, Identifiable {
+    case seven = 7
+    case fourteen = 14
+    case thirty = 30
+
+    var id: Int { rawValue }
+
+    var title: String {
+        "\(rawValue)-day"
+    }
+
+    var completionBonusCoins: Int {
+        switch self {
+        case .seven:
+            return 120
+        case .fourteen:
+            return 300
+        case .thirty:
+            return 800
+        }
+    }
+
+    var missPenaltyCoins: Int {
+        switch self {
+        case .seven:
+            return 40
+        case .fourteen:
+            return 90
+        case .thirty:
+            return 220
+        }
+    }
+}
+
+struct CapyChallengeState: Codable {
+    var isActive: Bool
+    var length: CapyChallengeLength
+    var startedAt: Date?
+    var completedCheckIns: Int
+    var lastCheckInDate: Date?
+
+    init(
+        isActive: Bool = false,
+        length: CapyChallengeLength = .seven,
+        startedAt: Date? = nil,
+        completedCheckIns: Int = 0,
+        lastCheckInDate: Date? = nil
+    ) {
+        self.isActive = isActive
+        self.length = length
+        self.startedAt = startedAt
+        self.completedCheckIns = completedCheckIns
+        self.lastCheckInDate = lastCheckInDate
+    }
+}
+
 struct CapyTask: Identifiable, Codable, Equatable {
     let id: UUID
     var title: String
@@ -58,6 +114,7 @@ struct CapyTask: Identifiable, Codable, Equatable {
 struct CapyStats: Codable {
     var coins: Int
     var streak: Int
+    var freezeProtectors: Int
     var lastCompletionDate: Date?
     var lastResetDate: Date?
     var mood: String
@@ -67,6 +124,7 @@ struct CapyStats: Codable {
     enum CodingKeys: String, CodingKey {
         case coins
         case streak
+        case freezeProtectors
         case lastCompletionDate
         case lastResetDate
         case mood
@@ -77,6 +135,7 @@ struct CapyStats: Codable {
     init(
         coins: Int = 0,
         streak: Int = 0,
+        freezeProtectors: Int = 0,
         lastCompletionDate: Date? = nil,
         lastResetDate: Date? = nil,
         mood: String = "sleepy",
@@ -85,6 +144,7 @@ struct CapyStats: Codable {
     ) {
         self.coins = coins
         self.streak = streak
+        self.freezeProtectors = freezeProtectors
         self.lastCompletionDate = lastCompletionDate
         self.lastResetDate = lastResetDate
         self.mood = mood
@@ -96,6 +156,7 @@ struct CapyStats: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         coins = try container.decodeIfPresent(Int.self, forKey: .coins) ?? 0
         streak = try container.decodeIfPresent(Int.self, forKey: .streak) ?? 0
+        freezeProtectors = try container.decodeIfPresent(Int.self, forKey: .freezeProtectors) ?? 0
         lastCompletionDate = try container.decodeIfPresent(Date.self, forKey: .lastCompletionDate)
         lastResetDate = try container.decodeIfPresent(Date.self, forKey: .lastResetDate)
         mood = try container.decodeIfPresent(String.self, forKey: .mood) ?? "sleepy"
@@ -161,6 +222,7 @@ struct CapyStoreState: Codable {
     var goals: UserGoals?
     var tasks: [CapyTask]
     var stats: CapyStats
+    var challenge: CapyChallengeState
     var completionHistory: [CapyCompletionEvent]
 
     init(
@@ -168,12 +230,14 @@ struct CapyStoreState: Codable {
         goals: UserGoals? = nil,
         tasks: [CapyTask] = [],
         stats: CapyStats = CapyStats(),
+        challenge: CapyChallengeState = CapyChallengeState(),
         completionHistory: [CapyCompletionEvent] = []
     ) {
         self.profile = profile
         self.goals = goals
         self.tasks = tasks
         self.stats = stats
+        self.challenge = challenge
         self.completionHistory = completionHistory
     }
 
@@ -182,6 +246,7 @@ struct CapyStoreState: Codable {
         case goals
         case tasks
         case stats
+        case challenge
         case completionHistory
     }
 
@@ -191,6 +256,7 @@ struct CapyStoreState: Codable {
         goals = try container.decodeIfPresent(UserGoals.self, forKey: .goals)
         tasks = try container.decodeIfPresent([CapyTask].self, forKey: .tasks) ?? []
         stats = try container.decodeIfPresent(CapyStats.self, forKey: .stats) ?? CapyStats()
+        challenge = try container.decodeIfPresent(CapyChallengeState.self, forKey: .challenge) ?? CapyChallengeState()
         completionHistory = try container.decodeIfPresent([CapyCompletionEvent].self, forKey: .completionHistory) ?? []
     }
 }

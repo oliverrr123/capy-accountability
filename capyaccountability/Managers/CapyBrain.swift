@@ -15,18 +15,40 @@ enum CapyResult {
 }
 
 class CapyBrain: ObservableObject {
-//    private let endpoint = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
-    private let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
+    private let openAIEndpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
+    private let hackClubEndpoint = URL(string: "https://ai.hackclub.com/proxy/v1/chat/completions")!
+    private var endpoint: URL {
+        // Hack Club keys are prefixed with `sk-hc-` and must use the Hack Club proxy endpoint.
+        apiKey.hasPrefix("sk-hc-") ? hackClubEndpoint : openAIEndpoint
+    }
 
     private var apiKey: String {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "OpenaiApiKey") as? String else {
-            print("No API Key")
-            return ""
+        let keyCandidates = ["OpenaiApiKey", "AIApiKey"]
+
+        for key in keyCandidates {
+            guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String else {
+                continue
+            }
+            let sanitized = sanitizeApiKey(value)
+            if !sanitized.isEmpty {
+                return sanitized
+            }
         }
-        if value.hasPrefix("\"") && value.hasSuffix("\"") {
-            return String(value.dropFirst().dropLast())
+
+        print("No API Key")
+        return ""
+    }
+
+    private func sanitizeApiKey(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+        // Handles unresolved build setting placeholders like $(OPENAI_API_KEY).
+        guard !(trimmed.hasPrefix("$(") && trimmed.hasSuffix(")")) else { return "" }
+
+        if trimmed.hasPrefix("\"") && trimmed.hasSuffix("\"") {
+            return String(trimmed.dropFirst().dropLast())
         }
-        return value
+        return trimmed
     }
     
     func talkToCapy(messages: [[String: String]]) async throws -> CapyResult {

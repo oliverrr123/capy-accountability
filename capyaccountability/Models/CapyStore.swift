@@ -2,21 +2,28 @@ import Foundation
 import SwiftUI
 import Combine
 
+struct CapyTaskToggleResult {
+    let challengeMessage: String?
+}
+
 final class CapyStore: ObservableObject {
     @Published private(set) var profile: CapyProfile
     @Published private(set) var goals: UserGoals?
     @Published private(set) var tasks: [CapyTask]
     @Published private(set) var stats: CapyStats
+    @Published private(set) var challenge: CapyChallengeState
     @Published private(set) var completionHistory: [CapyCompletionEvent]
 
     private let storageKey = "capy_store_state_v1"
     private let calendar = Calendar.current
+    static let freezeProtectorCost = 48
 
     init(loadFromDisk: Bool = true) {
         self.profile = CapyProfile()
         self.goals = nil
         self.tasks = []
         self.stats = CapyStats()
+        self.challenge = CapyChallengeState()
         self.completionHistory = []
 
         if loadFromDisk {
@@ -33,6 +40,7 @@ final class CapyStore: ObservableObject {
             goals = decoded.goals
             tasks = decoded.tasks
             stats = decoded.stats
+            challenge = decoded.challenge
             completionHistory = decoded.completionHistory
         } catch {
             print("Failed to load CapyStore: \(error)")
@@ -45,6 +53,7 @@ final class CapyStore: ObservableObject {
             goals: goals,
             tasks: tasks,
             stats: stats,
+            challenge: challenge,
             completionHistory: completionHistory
         )
         do {
@@ -106,9 +115,13 @@ final class CapyStore: ObservableObject {
         save()
     }
 
-    func toggleTask(_ task: CapyTask) {
-        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else { return }
+    @discardableResult
+    func toggleTask(_ task: CapyTask) -> CapyTaskToggleResult {
+        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else {
+            return CapyTaskToggleResult(challengeMessage: nil)
+        }
         let oldCompletedAt = tasks[index].completedAt
+        var challengeMessage: String?
         tasks[index].isDone.toggle()
         if tasks[index].isDone {
             let completedAt = Date()
@@ -118,7 +131,7 @@ final class CapyStore: ObservableObject {
             stats.xp += gainedXP
             stats.totalCompletions += 1
             appendCompletionEvent(for: tasks[index], xpReward: gainedXP, at: completedAt)
-            recordDailyCompletionIfNeeded()
+            challengeMessage = recordDailyCompletionIfNeeded(now: completedAt)
         } else {
             tasks[index].completedAt = nil
             stats.coins = max(stats.coins - tasks[index].coinReward, 0)
@@ -129,6 +142,7 @@ final class CapyStore: ObservableObject {
         }
         updateMood()
         save()
+        return CapyTaskToggleResult(challengeMessage: challengeMessage)
     }
 
     func spendCoins(_ amount: Int) -> Bool {
@@ -144,10 +158,20 @@ final class CapyStore: ObservableObject {
         save()
     }
 
-    func resetDailyIfNeeded() {
-        let today = calendar.startOfDay(for: Date())
+    @discardableResult
+    func resetDailyIfNeeded(now: Date = Date()) -> [String] {
+        let today = calendar.startOfDay(for: now)
         if let lastReset = stats.lastResetDate, calendar.isDate(lastReset, inSameDayAs: today) {
-            return
+            return []
+        }
+
+        var messages: [String] = []
+
+        if let challengePenalty = evaluateChallengeMissIfNeeded(on: today) {
+            messages.append(challengePenalty)
+        }
+        if let freezeMessage = applyFreezeProtectionIfNeeded(on: today) {
+            messages.append(freezeMessage)
         }
 
         for index in tasks.indices {
@@ -157,15 +181,29 @@ final class CapyStore: ObservableObject {
             }
         }
 
-        stats.lastResetDate = Date()
-        if let lastCompletion = stats.lastCompletionDate {
-            let lastDay = calendar.startOfDay(for: lastCompletion)
-            if let yesterday = calendar.date(byAdding: .day, value: -1, to: today), lastDay < yesterday {
-                stats.streak = 0
-            }
-        }
+        stats.lastResetDate = now
         updateMood()
         save()
+        return messages
+    }
+
+    func startChallenge(_ length: CapyChallengeLength, now: Date = Date()) {
+        challenge = CapyChallengeState(
+            isActive: true,
+            length: length,
+            startedAt: calendar.startOfDay(for: now),
+            completedCheckIns: 0,
+            lastCheckInDate: nil
+        )
+        save()
+    }
+
+    func buyFreezeProtector() -> Bool {
+        guard stats.coins >= Self.freezeProtectorCost else { return false }
+        stats.coins -= Self.freezeProtectorCost
+        stats.freezeProtectors += 1
+        save()
+        return true
     }
 
     var completionRatio: Double {
@@ -320,14 +358,14 @@ final class CapyStore: ObservableObject {
         }
     }
 
-    private func recordDailyCompletionIfNeeded() {
-        guard allDailyComplete else { return }
-        let today = calendar.startOfDay(for: Date())
+    private func recordDailyCompletionIfNeeded(now: Date) -> String? {
+        guard allDailyComplete else { return nil }
+        let today = calendar.startOfDay(for: now)
 
         if let lastCompletion = stats.lastCompletionDate {
             let lastDay = calendar.startOfDay(for: lastCompletion)
             if calendar.isDate(lastDay, inSameDayAs: today) {
-                return
+                return nil
             }
             if let expected = calendar.date(byAdding: .day, value: 1, to: lastDay), calendar.isDate(expected, inSameDayAs: today) {
                 stats.streak += 1
@@ -338,7 +376,92 @@ final class CapyStore: ObservableObject {
             stats.streak = 1
         }
 
-        stats.lastCompletionDate = Date()
+        stats.lastCompletionDate = now
+        return recordChallengeCheckInIfNeeded(on: today)
+    }
+
+    private func applyFreezeProtectionIfNeeded(on today: Date) -> String? {
+        guard let lastCompletion = stats.lastCompletionDate else { return nil }
+        let lastDay = calendar.startOfDay(for: lastCompletion)
+        let daysBetween = calendar.dateComponents([.day], from: lastDay, to: today).day ?? 0
+        let missedDays = max(daysBetween - 1, 0)
+        guard missedDays > 0 else { return nil }
+
+        let protectorsUsed = min(stats.freezeProtectors, missedDays)
+        if protectorsUsed > 0 {
+            stats.freezeProtectors -= protectorsUsed
+            if let bridged = calendar.date(byAdding: .day, value: protectorsUsed, to: lastDay) {
+                stats.lastCompletionDate = bridged
+            }
+        }
+
+        if protectorsUsed >= missedDays {
+            return "freeze protector saved your streak. used \(protectorsUsed), \(stats.freezeProtectors) left."
+        }
+
+        stats.streak = 0
+        if protectorsUsed > 0 {
+            return "used \(protectorsUsed) freeze protector, but streak still broke."
+        }
+        return nil
+    }
+
+    private func evaluateChallengeMissIfNeeded(on today: Date) -> String? {
+        guard challenge.isActive, let startedAt = challenge.startedAt else { return nil }
+        let startDay = calendar.startOfDay(for: startedAt)
+        guard today > startDay else { return nil }
+        guard let requiredCheckInDay = calendar.date(byAdding: .day, value: -1, to: today) else { return nil }
+
+        guard let lastCheckIn = challenge.lastCheckInDate else {
+            return failActiveChallenge()
+        }
+
+        let lastCheckInDay = calendar.startOfDay(for: lastCheckIn)
+        if lastCheckInDay < requiredCheckInDay {
+            return failActiveChallenge()
+        }
+
+        return nil
+    }
+
+    private func recordChallengeCheckInIfNeeded(on day: Date) -> String? {
+        guard challenge.isActive, let startedAt = challenge.startedAt else { return nil }
+        let startDay = calendar.startOfDay(for: startedAt)
+        guard day >= startDay else { return nil }
+
+        if let lastCheckIn = challenge.lastCheckInDate {
+            let lastDay = calendar.startOfDay(for: lastCheckIn)
+            if calendar.isDate(lastDay, inSameDayAs: day) {
+                return nil
+            }
+            if let expected = calendar.date(byAdding: .day, value: 1, to: lastDay), !calendar.isDate(expected, inSameDayAs: day) {
+                return failActiveChallenge()
+            }
+        } else if day > startDay {
+            return failActiveChallenge()
+        }
+
+        challenge.lastCheckInDate = day
+        challenge.completedCheckIns += 1
+
+        if challenge.completedCheckIns >= challenge.length.rawValue {
+            let bonus = challenge.length.completionBonusCoins
+            let completedTitle = challenge.length.title
+            stats.coins += bonus
+            challenge = CapyChallengeState()
+            return "challenge \(completedTitle) complete! +\(bonus) coins."
+        }
+
+        return "challenge day \(challenge.completedCheckIns)/\(challenge.length.rawValue) locked in."
+    }
+
+    private func failActiveChallenge() -> String? {
+        guard challenge.isActive else { return nil }
+        let penalty = challenge.length.missPenaltyCoins
+        let challengeTitle = challenge.length.title
+        stats.coins = max(stats.coins - penalty, 0)
+        challenge = CapyChallengeState()
+        return "missed a day. \(challengeTitle) challenge failed: -\(penalty) coins."
     }
 
     private func updateMood() {

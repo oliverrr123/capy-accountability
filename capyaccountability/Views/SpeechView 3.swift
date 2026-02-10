@@ -64,12 +64,15 @@ struct SpeechView3: View {
                                 .padding(.horizontal, 20)
                                 .rotationEffect(Angle(degrees: 180))
                             
-                            Text(capyText)
-                                .font(.custom("Gaegu-Regular", size: 18))
-                                .foregroundStyle(Color.capyDarkBrown)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                                .padding(.top, 18)
-                                .padding(.horizontal, 40)
+                            ScrollView(.vertical, showsIndicators: true) {
+                                Text(capyText)
+                                    .font(.custom("Gaegu-Regular", size: 18))
+                                    .foregroundStyle(Color.capyDarkBrown)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: 110, alignment: .topLeading)
+                            .padding(.top, 18)
+                            .padding(.horizontal, 40)
                         }
                         
                     }

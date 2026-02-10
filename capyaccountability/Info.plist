@@ -4,8 +4,6 @@
 <dict>
 	<key>AIApiKey</key>
 	<string>$(AI_API_KEY)</string>
-	<key>OpenaiApiKey</key>
-	<string>$(OPENAI_API_KEY)</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -28,6 +26,8 @@
 	<true/>
 	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
 	<true/>
+	<key>OpenaiApiKey</key>
+	<string>$(AI_API_KEY)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Resources/Fonts/CherryBombOne-Regular.ttf</string>
