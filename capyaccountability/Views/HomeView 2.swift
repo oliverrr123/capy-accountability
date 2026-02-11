@@ -822,18 +822,6 @@ struct HomeView2: View {
                     .foregroundStyle(.white)
                     .contentTransition(.numericText(value: balanceDisplay))
 
-                HStack(spacing: 2) {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("x\(store.stats.freezeProtectors)")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                }
-                .foregroundStyle(Color.capyDarkBrown)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(.white.opacity(0.92))
-                .clipShape(Capsule())
-
                 if store.challenge.isActive {
                     Text("🏁 \(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
                         .font(.custom("Gaegu-Regular", size: 18))
@@ -1101,6 +1089,7 @@ struct HomeView2: View {
 //                    }
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 12)
                 .padding(.bottom, 28)
                 .frame(maxHeight: .infinity)
             }
@@ -2452,6 +2441,18 @@ private struct CapyShopSheet: View {
                     .foregroundStyle(Color.capyDarkBrown)
                     .contentTransition(.numericText(value: Double(balance)))
                     .animation(.snappy, value: balance)
+
+                HStack(spacing: 3) {
+                    Image(systemName: "snowflake")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("x\(freezeCount)")
+                        .font(.custom("Gaegu-Regular", size: 18))
+                }
+                .foregroundStyle(Color.capyDarkBrown)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(.white.opacity(0.92))
+                .clipShape(Capsule())
             }
             .padding(.horizontal, 20)
             
