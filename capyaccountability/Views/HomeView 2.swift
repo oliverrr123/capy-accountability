@@ -2460,10 +2460,12 @@ private struct CapyShopSheet: View {
                 .font(.custom("Gaegu-Regular", size: 17))
                 .foregroundStyle(Color.capyBrown.opacity(0.75))
                 .padding(.horizontal, 20)
+                .padding(.top, 12)
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 10) {
                     freezeShopSection
+                        .padding(.vertical, 12)
 
                     ForEach(items) { item in
                         shopItemRow(item)
@@ -2509,9 +2511,9 @@ private struct CapyShopSheet: View {
 
     private var freezeShopSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("freeze protectors (always available)")
-                .font(.custom("Gaegu-Regular", size: 18))
-                .foregroundStyle(Color.capyBrown.opacity(0.9))
+//            Text("freeze protectors (always available)")
+//                .font(.custom("Gaegu-Regular", size: 18))
+//                .foregroundStyle(Color.capyBrown.opacity(0.9))
 
             HStack(spacing: 12) {
                 Text("❄️")
