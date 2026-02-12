@@ -2433,6 +2433,18 @@ private struct CapyShopSheet: View {
                     .foregroundStyle(Color.capyDarkBrown)
                 Spacer()
                 
+//                HStack(spacing: 3) {
+//                    Image(systemName: "snowflake")
+//                        .font(.system(size: 12, weight: .bold))
+//                    Text("x\(freezeCount)")
+//                        .font(.custom("Gaegu-Regular", size: 18))
+//                }
+//                .foregroundStyle(Color.capyDarkBrown)
+//                .padding(.horizontal, 8)
+//                .padding(.vertical, 6)
+//                .background(.white.opacity(0.92))
+//                .clipShape(Capsule())
+                
                 Text("🪙")
                     .font(.custom("Gaegu-Regular", size: 24))
                     .padding(.top, 2)
@@ -2441,18 +2453,6 @@ private struct CapyShopSheet: View {
                     .foregroundStyle(Color.capyDarkBrown)
                     .contentTransition(.numericText(value: Double(balance)))
                     .animation(.snappy, value: balance)
-
-                HStack(spacing: 3) {
-                    Image(systemName: "snowflake")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("x\(freezeCount)")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                }
-                .foregroundStyle(Color.capyDarkBrown)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .background(.white.opacity(0.92))
-                .clipShape(Capsule())
             }
             .padding(.horizontal, 20)
             
@@ -2757,88 +2757,183 @@ private struct ChallengeSheet: View {
     let challenge: CapyChallengeState
     let balance: Int
     let onStart: (CapyChallengeLength) -> Void
+    
+    private var layoutColumns: [GridItem] {
+        let itemsPerRow: Int
+        
+        if challenge.length.rawValue == 30 {
+            itemsPerRow = 10
+        } else {
+            itemsPerRow = 7
+        }
+        
+        return Array(repeating: GridItem(.flexible(), spacing: 8), count: itemsPerRow)
+    }
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             Capsule()
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 60, height: 6)
                 .padding(.top, 10)
-
-            Text("challenge mode")
-                .font(.custom("Gaegu-Regular", size: 30))
-                .foregroundStyle(Color.capyDarkBrown)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-
-            Text("check in daily for 7/14/30 days. completion gives bonus coins. miss a day and coins are deducted.")
-                .font(.custom("Gaegu-Regular", size: 19))
-                .foregroundStyle(Color.capyBrown)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-
-            HStack(spacing: 6) {
-                Text("🪙")
-                Text(String(balance))
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-            }
-
-            if challenge.isActive {
-                VStack(spacing: 8) {
-                    Text("active: \(challenge.length.title)")
-                        .font(.custom("Gaegu-Regular", size: 24))
+            
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("challenge mode")
+                        .font(.custom("Gaegu-Regular", size: 32))
                         .foregroundStyle(Color.capyDarkBrown)
-                    Text("progress: \(challenge.completedCheckIns)/\(challenge.length.rawValue)")
+                    if challenge.isActive {
+                        Text("keep the streak alive!")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                            .foregroundStyle(Color.capyBrown)
+                    }
+                }
+                Spacer()
+                HStack(spacing: 4) {
+                    Text("🪙")
+                    Text("\(balance)")
                         .font(.custom("Gaegu-Regular", size: 20))
                         .foregroundStyle(Color.capyBrown)
-                    Text("bonus: +\(challenge.length.completionBonusCoins) coins")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                        .foregroundStyle(Color.capyBrown)
-                    Text("miss penalty: -\(challenge.length.missPenaltyCoins) coins")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                        .foregroundStyle(Color.red.opacity(0.85))
                 }
-                .padding(14)
-                .frame(maxWidth: .infinity)
-                .background(Color.white.opacity(0.9))
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.5))
+                .clipShape(Capsule())
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+
+            if challenge.isActive {
+                activeChallengeView
             } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 10) {
-                        ForEach(CapyChallengeLength.allCases) { length in
-                            Button {
-                                onStart(length)
-                                dismiss()
-                            } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(length.title)
-                                            .font(.custom("Gaegu-Regular", size: 24))
-                                            .foregroundStyle(Color.capyDarkBrown)
-                                        Text("bonus +\(length.completionBonusCoins) • miss -\(length.missPenaltyCoins)")
-                                            .font(.custom("Gaegu-Regular", size: 17))
-                                            .foregroundStyle(Color.capyBrown)
-                                    }
-                                    Spacer()
-                                    Text("start")
-                                        .font(.custom("Gaegu-Regular", size: 19))
-                                        .foregroundStyle(Color.capyBrown)
-                                }
-                                .padding(12)
-                                .background(Color.white.opacity(0.9))
-                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            }
-                        }
+                selectionView
+            }
+        }
+        .padding(.bottom, 20)
+        .background(Color.capyBeige.opacity(0.98))
+    }
+    
+    private var activeChallengeView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                VStack(spacing: 4) {
+                    Text(challenge.length.title)
+                        .font(.custom("Gaegu-Regular", size: 28))
+                        .foregroundStyle(Color.capyDarkBrown)
+                    
+                    Text("\(challenge.completedCheckIns) of \(challenge.length.rawValue) days complete")
+                        .font(.custom("Gaegu-Regular", size: 20))
+                        .foregroundStyle(Color.capyBrown)
+                }
+                
+                LazyVGrid(columns: layoutColumns, spacing: 12) {
+                    ForEach(1...challenge.length.rawValue, id: \.self) { day in
+                        dayCircle(day: day)
                     }
-                    .padding(.horizontal, 20)
+                }
+                .padding(20)
+                .background(Color.white.opacity(0.6))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                .padding(.horizontal, 24)
+                
+                HStack(spacing: 30) {
+                    VStack(spacing: 2) {
+                        Text("reward")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                            .foregroundStyle(Color.capyBrown)
+                        Text("+\(challenge.length.completionBonusCoins)")
+                            .font(.custom("Gaegu-Regular", size: 28))
+                    }
+                    
+                    VStack(spacing: 2) {
+                        Text("risk")
+                            .font(.custom("Gaegu-Regular", size: 16))
+                            .foregroundStyle(Color.capyBrown)
+                        Text("-\(challenge.length.missPenaltyCoins)")
+                            .font(.custom("Gaegu-Regular", size: 28))
+                            .foregroundStyle(Color.red.opacity(0.8))
+                    }
                 }
             }
-
-            Spacer(minLength: 0)
         }
-        .background(Color.capyBeige.opacity(0.96))
+    }
+    
+    @ViewBuilder
+    private func dayCircle(day: Int) -> some View {
+        let isCompleted = day <= challenge.completedCheckIns
+        let isToday = day == challenge.completedCheckIns + 1
+        
+        ZStack {
+            if isCompleted {
+                Circle()
+                    .fill(Color.capyBlue)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+            } else if isToday {
+                Circle()
+                    .strokeBorder(Color.capyDarkBrown, lineWidth: 2)
+                    .background(Circle().fill(Color.white))
+                Text("\(day)")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                    .foregroundStyle(Color.capyDarkBrown)
+            } else {
+                Circle()
+                    .fill(Color.black.opacity(0.05))
+                Text("\(day)")
+                    .font(.custom("Gaegu-Regular", size: 18))
+                    .foregroundStyle(Color.black.opacity(0.2))
+            }
+        }
+        .frame(height: 44)
+    }
+    
+    private var selectionView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 12) {
+                Text("pick your goal")
+                    .font(.custom("Gaegu-Regular", size: 20))
+                    .foregroundStyle(Color.capyBrown.opacity(0.8))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 24)
+                
+                ForEach(CapyChallengeLength.allCases) { length in
+                    Button {
+                        onStart(length)
+                        dismiss()
+                    } label : {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(length.title)
+                                    .font(.custom("Gaegu-Regular", size: 26))
+                                    .foregroundStyle(Color.capyDarkBrown)
+                                Text("\(length.rawValue) days streak")
+                                    .font(.custom("Gaegu-Regular", size: 16))
+                                    .foregroundStyle(Color.capyBrown)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("+\(length.completionBonusCoins) coins")
+                                    .font(.custom("Gaegu-Regular", size: 22))
+                                    .foregroundStyle(Color.capyBlue)
+                                Text("miss: -\(length.missPenaltyCoins)")
+                                    .font(.custom("Gaegu-Regular", size: 16))
+                                    .foregroundStyle(Color.red.opacity(0.7))
+                            }
+                        }
+                        .padding(16)
+                        .background(Color.white.opacity(0.85))
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 4)
+                    }
+                    .padding(.horizontal, 24)
+                }
+                
+                Spacer().frame(height: 20)
+            }
+        }
     }
 }
 
