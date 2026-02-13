@@ -347,7 +347,8 @@ struct HomeView2: View {
 
     private var challengeSheetContent: some View {
         ChallengeSheet(
-            challenge: store.challenge,
+            store: store,
+            challenge: $store.challenge,
             balance: store.stats.coins,
             onStart: { length in
                 store.startChallenge(length)
@@ -2753,8 +2754,11 @@ private struct CapyShopSheet: View {
 
 private struct ChallengeSheet: View {
     @Environment(\.dismiss) private var dismiss
+    
+    @ObservedObject var store: CapyStore
+    @Binding var challenge: CapyChallengeState
 
-    let challenge: CapyChallengeState
+//    private var challenge: CapyChallengeState { store.challenge }
     let balance: Int
     let onStart: (CapyChallengeLength) -> Void
     
@@ -2789,16 +2793,15 @@ private struct ChallengeSheet: View {
                     }
                 }
                 Spacer()
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Text("🪙")
                     Text("\(balance)")
-                        .font(.custom("Gaegu-Regular", size: 20))
+                        .font(.custom("Gaegu-Regular", size: 24))
                         .foregroundStyle(Color.capyBrown)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.5))
-                .clipShape(Capsule())
+                .padding(.bottom, 16)
+//                .background(Color.white.opacity(0.5))
+//                .clipShape(Capsule())
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
@@ -2854,6 +2857,41 @@ private struct ChallengeSheet: View {
                             .foregroundStyle(Color.red.opacity(0.8))
                     }
                 }
+                
+                VStack(spacing: 10) {
+                    Text("--- DEBUG ZONE ---")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.gray)
+                    
+                    HStack {
+                        Button("Simulate Next Day") {
+                            print("Button Tapped: Simulate Next Day")
+                            store.debugSimulateNextDay()
+                        }
+                        .font(.caption)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(8)
+                        
+                        Button("+1 Check In") {
+                            print("Button Tapped: +1 Check In")
+                            store.debugSimulateNextDay()
+                        }
+                        .font(.caption)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                    
+                    Button("Force Fail / Reset") {
+                        store.stopChallenge(completed: false)
+                    }
+                    .font(.caption)
+                    .padding(8)
+                    .background(Color.red.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                .padding(.top, 20)
             }
         }
     }
@@ -2861,7 +2899,15 @@ private struct ChallengeSheet: View {
     @ViewBuilder
     private func dayCircle(day: Int) -> some View {
         let isCompleted = day <= challenge.completedCheckIns
-        let isToday = day == challenge.completedCheckIns + 1
+        let isNextUp = day == challenge.completedCheckIns + 1
+        let isDoneForToday: Bool = {
+            guard let last = challenge.lastCheckInDate else { return false }
+            return Calendar.current.isDateInToday(last)
+        }()
+        
+        let isTodayFinishedCircle = isCompleted && (day == challenge.completedCheckIns) && isDoneForToday
+        
+        let showActiveStroke = isNextUp && !isDoneForToday
         
         ZStack {
             if isCompleted {
@@ -2870,9 +2916,14 @@ private struct ChallengeSheet: View {
                 Image(systemName: "checkmark")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
-            } else if isToday {
+                
+                if isTodayFinishedCircle {
+                    Circle()
+                        .strokeBorder(Color.capyDarkBrown, lineWidth: 3)
+                }
+            } else if showActiveStroke {
                 Circle()
-                    .strokeBorder(Color.capyDarkBrown, lineWidth: 2)
+                    .strokeBorder(Color.capyDarkBrown, lineWidth: 3)
                     .background(Circle().fill(Color.white))
                 Text("\(day)")
                     .font(.custom("Gaegu-Regular", size: 20))

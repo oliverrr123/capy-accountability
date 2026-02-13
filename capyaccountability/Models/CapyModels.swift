@@ -222,7 +222,7 @@ struct CapyStoreState: Codable {
     var goals: UserGoals?
     var tasks: [CapyTask]
     var stats: CapyStats
-    var challenge: CapyChallengeState
+    var challenge: CapyChallengeState?
     var completionHistory: [CapyCompletionEvent]
 
     init(
@@ -230,7 +230,7 @@ struct CapyStoreState: Codable {
         goals: UserGoals? = nil,
         tasks: [CapyTask] = [],
         stats: CapyStats = CapyStats(),
-        challenge: CapyChallengeState = CapyChallengeState(),
+        challenge: CapyChallengeState? = nil,
         completionHistory: [CapyCompletionEvent] = []
     ) {
         self.profile = profile

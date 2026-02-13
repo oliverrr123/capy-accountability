@@ -11,7 +11,7 @@ final class CapyStore: ObservableObject {
     @Published private(set) var goals: UserGoals?
     @Published private(set) var tasks: [CapyTask]
     @Published private(set) var stats: CapyStats
-    @Published private(set) var challenge: CapyChallengeState
+    @Published var challenge: CapyChallengeState
     @Published private(set) var completionHistory: [CapyCompletionEvent]
 
     private let storageKey = "capy_store_state_v1"
@@ -40,7 +40,7 @@ final class CapyStore: ObservableObject {
             goals = decoded.goals
             tasks = decoded.tasks
             stats = decoded.stats
-            challenge = decoded.challenge
+            challenge = decoded.challenge ?? CapyChallengeState()
             completionHistory = decoded.completionHistory
         } catch {
             print("Failed to load CapyStore: \(error)")
@@ -409,7 +409,10 @@ final class CapyStore: ObservableObject {
     private func evaluateChallengeMissIfNeeded(on today: Date) -> String? {
         guard challenge.isActive, let startedAt = challenge.startedAt else { return nil }
         let startDay = calendar.startOfDay(for: startedAt)
-        guard today > startDay else { return nil }
+        
+        if today <= startDay { return nil }
+        
+//        guard today > startDay else { return nil }
         guard let requiredCheckInDay = calendar.date(byAdding: .day, value: -1, to: today) else { return nil }
 
         guard let lastCheckIn = challenge.lastCheckInDate else {
@@ -476,6 +479,60 @@ final class CapyStore: ObservableObject {
         default:
             stats.mood = "sleepy"
         }
+    }
+    
+    func stopChallenge(completed: Bool) {
+        challenge = CapyChallengeState(
+            isActive: false,
+            length: .seven,
+            startedAt: nil,
+            completedCheckIns: 0,
+            lastCheckInDate: nil
+        )
+        save()
+        print("Challenge stopped. Completed: \(completed)")
+    }
+    
+    func debugIncrementChallenge() {
+        guard challenge.isActive else {
+            print("DEBUG: Challenge is not active, cannot increment.")
+            return
+        }
+        
+        objectWillChange.send()
+        
+        challenge.completedCheckIns += 1
+        challenge.lastCheckInDate = Date()
+        
+        print("DEBUG: Challenge incremented! New Count: \(challenge.completedCheckIns)/\(challenge.length.rawValue)")
+        
+        if challenge.completedCheckIns >= challenge.length.rawValue {
+            let bonus = challenge.length.completionBonusCoins
+            stats.coins += bonus
+            stopChallenge(completed: true)
+            print("DEBUG: Challenge Complete!")
+        }
+        
+        save()
+    }
+    
+    func debugSimulateNextDay() {
+        guard challenge.isActive else { return }
+        
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) {
+            challenge.lastCheckInDate = yesterday
+        }
+        
+        for index in tasks.indices {
+            if tasks[index].frequency == .daily {
+                tasks[index].isDone = false
+                tasks[index].completedAt = nil
+            }
+        }
+        
+        save()
+        objectWillChange.send()
+        print("DEBUG: Simulating new day. Tasks reset, last check-in moved to yesterday.")
     }
 }
 
