@@ -868,12 +868,13 @@ struct HomeView2: View {
                     showChallengeSheet = true
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
-                    HStack(spacing: 6) {
+                    HStack(spacing: 4) {
                         let isDoneToday = Calendar.current.isDateInToday(store.challenge.lastCheckInDate ?? .distantPast)
                         
                         Text("🔥")
                             .font(.system(size: 16))
                             .saturation(isDoneToday ? 1 : 0)
+                            .opacity(isDoneToday ? 1 : 0.6)
 //                            .padding(.bottom, 2)
                         
                         Text("\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
@@ -2849,7 +2850,6 @@ private struct ChallengeSheet: View {
     @ViewBuilder
     private func dayCircle(day: Int) -> some View {
         let isCompleted = day <= challenge.completedCheckIns
-        let isNextUp = day == challenge.completedCheckIns + 1
         let isDoneForToday: Bool = {
             guard let last = challenge.lastCheckInDate else { return false }
             return Calendar.current.isDateInToday(last)
@@ -2857,33 +2857,17 @@ private struct ChallengeSheet: View {
         
         let isTodayFinishedCircle = isCompleted && (day == challenge.completedCheckIns) && isDoneForToday
         
-        let showActiveStroke = isNextUp && !isDoneForToday
-        
         ZStack {
-            if isCompleted {
+            Circle()
+                .fill(Color.black.opacity(0.05))
+            Text("🔥")
+                .font(.system(size: 18))
+                .saturation(isCompleted ? 1 : 0)
+                .opacity(isCompleted ? 1 : 0.6)
+            if isTodayFinishedCircle {
                 Circle()
-                    .fill(Color.capyBlue)
-                Image(systemName: "checkmark")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.white)
-                
-                if isTodayFinishedCircle {
-                    Circle()
-                        .strokeBorder(Color.capyDarkBrown, lineWidth: 3)
-                }
-            } else if showActiveStroke {
-                Circle()
-                    .strokeBorder(Color.capyDarkBrown, lineWidth: 3)
-                    .background(Circle().fill(Color.white))
-                Text("\(day)")
-                    .font(.custom("Gaegu-Regular", size: 20))
-                    .foregroundStyle(Color.capyDarkBrown)
-            } else {
-                Circle()
-                    .fill(Color.black.opacity(0.05))
-                Text("\(day)")
-                    .font(.custom("Gaegu-Regular", size: 18))
-                    .foregroundStyle(Color.black.opacity(0.2))
+                    .strokeBorder(Color.capyDarkBrown, lineWidth: 2)
+                    .opacity(0.8)
             }
         }
         .frame(height: 44)
