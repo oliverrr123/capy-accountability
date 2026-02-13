@@ -16,7 +16,9 @@ final class CapyStore: ObservableObject {
 
     private let storageKey = "capy_store_state_v1"
     private let calendar = Calendar.current
-    static let freezeProtectorCost = 48
+    static let freezeProtectorCost = 120
+    static let maxFreezeProtectors = 2
+    
 
     init(loadFromDisk: Bool = true) {
         self.profile = CapyProfile()

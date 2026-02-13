@@ -316,9 +316,11 @@ struct HomeView2: View {
             onBuyFreeze: {
                 if store.buyFreezeProtector() {
                     capyText = "freeze protector stocked. streak safety is now x\(store.stats.freezeProtectors)."
+                    return true
                 } else {
                     shopAlertMessage = "not enough coins for a freeze protector."
                     showShopAlert = true
+                    return false
                 }
             },
             onReset: {
@@ -589,34 +591,45 @@ struct HomeView2: View {
     private var statsAndChatButton: some View {
         HStack(alignment: .bottom, spacing: 0) {
             VStack(alignment: .leading) {
-                VStack(spacing: 12) {
-                    ForEach(stats) { stat in
-                        VStack(spacing: 0) {
-                            Text(stat.emoji)
-                                .font(.system(size: 22))
-                            Text("\(Int(stat.points))/5")
-                                .font(.custom("Gaegu-Regular", size: 14))
-                                .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+                Button {
+                    refreshDailyShopIfNeeded()
+                    showShopSheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    VStack(spacing: 12) {
+                        ForEach(stats) { stat in
+                            VStack(spacing: 0) {
+                                Text(stat.emoji)
+                                    .font(.system(size: 22))
+                                Text("\(Int(stat.points))/5")
+                                    .font(.custom("Gaegu-Regular", size: 14))
+                                    .foregroundStyle(Int(stat.points) <= 1 ? Color.red : Color.capyDarkBrown)
+                            }
                         }
                     }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 8)
+                    .background(.white.opacity(0.9))
+                    .clipShape(Capsule())
                 }
-                .padding(.vertical, 12)
-                .padding(.horizontal, 8)
-                .background(.white.opacity(0.9))
-                .clipShape(Capsule())
                 
-                HStack(spacing: 4) {
-                    Text("lvl \(store.progressionLevel)")
-                        .font(.custom("Gaegu-Regular", size: 20))
-                    Text(store.progressionTitle)
-                        .font(.custom("Gaegu-Regular", size: 16))
-                        .lineLimit(1)
+                Button {
+                    showReviewSheet = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("lvl \(store.progressionLevel)")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                        Text(store.progressionTitle)
+                            .font(.custom("Gaegu-Regular", size: 16))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Color.capyDarkBrown)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(.white.opacity(0.9))
+                    .clipShape(Capsule())
                 }
-                .foregroundStyle(Color.capyDarkBrown)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 7)
-                .background(.white.opacity(0.9))
-                .clipShape(Capsule())
             }
             .padding(.leading, 12)
             
@@ -821,28 +834,51 @@ struct HomeView2: View {
                     .foregroundStyle(.white)
                     .contentTransition(.numericText(value: balanceDisplay))
 
-                if store.challenge.isActive {
-                    Text("🏁 \(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
-                        .font(.custom("Gaegu-Regular", size: 18))
-                        .foregroundStyle(Color.capyDarkBrown)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(.white.opacity(0.92))
-                        .clipShape(Capsule())
-                }
+//                if store.challenge.isActive {
+//                    Text("🏁 \(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
+//                        .font(.custom("Gaegu-Regular", size: 18))
+//                        .foregroundStyle(Color.capyDarkBrown)
+//                        .padding(.horizontal, 8)
+//                        .padding(.vertical, 6)
+//                        .background(.white.opacity(0.92))
+//                        .clipShape(Capsule())
+//                }
             }
             
             Spacer()
 
             HStack(spacing: 10) {
+//                Button {
+//                    showReviewSheet = true
+//                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+//                } label: {
+//                    HStack(spacing: 6) {
+//                        Image(systemName: "doc.text.magnifyingglass")
+////                        Text("review")
+////                            .font(.custom("Gaegu-Regular", size: 20))
+//                    }
+//                    .foregroundStyle(Color.capyDarkBrown)
+//                    .padding(.horizontal, 8)
+//                    .padding(.vertical, 6)
+//                    .background(.white.opacity(0.92))
+//                    .clipShape(Capsule())
+//                }
+
                 Button {
-                    showReviewSheet = true
+                    showChallengeSheet = true
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "doc.text.magnifyingglass")
-//                        Text("review")
-//                            .font(.custom("Gaegu-Regular", size: 20))
+                        let isDoneToday = Calendar.current.isDateInToday(store.challenge.lastCheckInDate ?? .distantPast)
+                        
+                        Text("🔥")
+                            .font(.system(size: 16))
+                            .saturation(isDoneToday ? 1 : 0)
+//                            .padding(.bottom, 2)
+                        
+                        Text("\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
+                            .font(.custom("Gaegu-Regular", size: 20))
+                            .foregroundStyle(Color.capyDarkBrown)
                     }
                     .foregroundStyle(Color.capyDarkBrown)
                     .padding(.horizontal, 8)
@@ -850,7 +886,7 @@ struct HomeView2: View {
                     .background(.white.opacity(0.92))
                     .clipShape(Capsule())
                 }
-
+                
                 Button {
                     showLiveActivitySheet = true
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -870,36 +906,22 @@ struct HomeView2: View {
                     .clipShape(Capsule())
                 }
 
-                Button {
-                    showChallengeSheet = true
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "flag.fill")
-                    }
-                    .foregroundStyle(Color.capyDarkBrown)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 8)
-                    .background(.white.opacity(0.92))
-                    .clipShape(Capsule())
-                }
-
-                Button {
-                    refreshDailyShopIfNeeded()
-                    showShopSheet = true
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "storefront.fill")
-//                        Text("capyshop")
-//                            .font(.custom("Gaegu-Regular", size: 20))
-                    }
-                    .foregroundStyle(Color.capyDarkBrown)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 8)
-                    .background(.white.opacity(0.92))
-                    .clipShape(Capsule())
-                }
+//                Button {
+//                    refreshDailyShopIfNeeded()
+//                    showShopSheet = true
+//                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+//                } label: {
+//                    HStack(spacing: 6) {
+//                        Image(systemName: "storefront.fill")
+////                        Text("capyshop")
+////                            .font(.custom("Gaegu-Regular", size: 20))
+//                    }
+//                    .foregroundStyle(Color.capyDarkBrown)
+//                    .padding(.horizontal, 8)
+//                    .padding(.vertical, 8)
+//                    .background(.white.opacity(0.92))
+//                    .clipShape(Capsule())
+//                }
             }
         }
         .padding(.horizontal, 20)
@@ -2320,7 +2342,7 @@ private struct CapyShopSheet: View {
     let items: [CapyShopItem]
     let isPurchased: (CapyShopItem) -> Bool
     let onBuy: (CapyShopItem) -> Void
-    let onBuyFreeze: () -> Void
+    let onBuyFreeze: () -> Bool
     let onReset: () -> Void
     let onUnlockAll: () -> Void
     
@@ -2450,7 +2472,17 @@ private struct CapyShopSheet: View {
                 Spacer()
 
                 Button {
-                    onBuyFreeze()
+                    if onBuyFreeze() {
+                        let visualItem = CapyShopItem(
+                            id: "freeze_protector",
+                            emoji: "❄️",
+                            title: "Freeze Protector",
+                            description: "",
+                            cost: freezeCost,
+                            statReward: "❄️"
+                        )
+                        startCelebration(for: visualItem)
+                    }
                 } label: {
                     HStack(spacing: 6) {
                         Text("🪙")
