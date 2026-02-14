@@ -314,6 +314,11 @@ struct HomeView2: View {
             isPurchased: { isPurchased($0) },
             onBuy: { buyShopItem($0) },
             onBuyFreeze: {
+                if store.stats.freezeProtectors >= 2 {
+                    shopAlertMessage = "you can only hold 2 freeze protectors at a time."
+                    showShopAlert = true
+                    return false
+                }
                 if store.buyFreezeProtector() {
                     capyText = "freeze protector stocked. streak safety is now x\(store.stats.freezeProtectors)."
                     return true
@@ -338,6 +343,19 @@ struct HomeView2: View {
                 let allIDs = CapyShopItem.catalog.map { $0.id }
                 purchasedShopItemsCSV = allIDs.joined(separator: ",")
                 store.awardBonusCoins(500)
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            },
+            onRefillStats: {
+                withAnimation {
+                    storedEnergy = 5.0
+                    storedHygiene = 5.0
+                    storedMood = 5.0
+                }
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            },
+            onClearFreezes: {
+                store.stats.freezeProtectors = 0
+                store.save()
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             }
         )
@@ -2346,6 +2364,8 @@ private struct CapyShopSheet: View {
     let onBuyFreeze: () -> Bool
     let onReset: () -> Void
     let onUnlockAll: () -> Void
+    let onRefillStats: () -> Void
+    let onClearFreezes: () -> Void
     
     @State private var purchasedItem: CapyShopItem? = nil
     @State private var showSunburst = false
@@ -2428,11 +2448,27 @@ private struct CapyShopSheet: View {
                         }
                         
                         Button {
+                            onRefillStats()
+                        } label: {
+                            Text("[DEBUG: REFILL ALL STATS")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.green.opacity(0.6))
+                        }
+                        
+                        Button {
                             onUnlockAll()
                         } label: {
                             Text("[DEBUG: UNLOCK ALL DECORATIONS]")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.red.opacity(0.6))
+                        }
+                        
+                        Button {
+                            onClearFreezes()
+                        } label: {
+                            Text("[DEBUG: REMOVE ALL FREEZES]")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.blue.opacity(0.6))
                         }
                     }
                     .padding(.bottom, 20)
@@ -2465,33 +2501,44 @@ private struct CapyShopSheet: View {
                     Text("Freeze Protector")
                         .font(.custom("Gaegu-Regular", size: 22))
                         .foregroundStyle(Color.capyDarkBrown)
-                    Text("streak safety stock: x\(freezeCount)")
+                    Text("streak safety stock: \(freezeCount)/2")
                         .font(.custom("Gaegu-Regular", size: 16))
                         .foregroundStyle(Color.capyBrown.opacity(0.85))
                 }
 
                 Spacer()
+                
+                let isMaxed = freezeCount >= 2
 
                 Button {
-                    if onBuyFreeze() {
-                        let visualItem = CapyShopItem(
-                            id: "freeze_protector",
-                            emoji: "❄️",
-                            title: "Freeze Protector",
-                            description: "",
-                            cost: freezeCost,
-                            statReward: "❄️"
-                        )
-                        startCelebration(for: visualItem)
+                    if !isMaxed {
+                        if onBuyFreeze() {
+                            let visualItem = CapyShopItem(
+                                id: "freeze_protector",
+                                emoji: "❄️",
+                                title: "Freeze Protector",
+                                description: "",
+                                cost: freezeCost,
+                                statReward: "❄️"
+                            )
+                            startCelebration(for: visualItem)
+                        }
+                    } else {
+                        _ = onBuyFreeze()
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text("🪙")
-                            .font(.custom("Gaegu-Regular", size: 12))
-                        Text(String(freezeCost))
-                            .font(.custom("Gaegu-Regular", size: 20))
+                        if isMaxed {
+                            Text("MAX")
+                                .font(.custom("Gaegu-Regular", size: 20))
+                        } else {
+                            Text("🪙")
+                                .font(.custom("Gaegu-Regular", size: 12))
+                            Text(String(freezeCost))
+                                .font(.custom("Gaegu-Regular", size: 20))
+                        }
                     }
-                    .foregroundStyle(Color.capyBrown)
+                    .foregroundStyle(isMaxed ? Color.capyBrown.opacity(0.5) : Color.capyBrown)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(Color.white.opacity(0.92))
@@ -2850,12 +2897,10 @@ private struct ChallengeSheet: View {
     @ViewBuilder
     private func dayCircle(day: Int) -> some View {
         let isCompleted = day <= challenge.completedCheckIns
-        let isDoneForToday: Bool = {
-            guard let last = challenge.lastCheckInDate else { return false }
-            return Calendar.current.isDateInToday(last)
-        }()
+        let isDoneForToday = Calendar.current.isDateInToday(challenge.lastCheckInDate ?? .distantPast)
+        let todayIndex = challenge.completedCheckIns + (isDoneForToday ? 0 : 1)
         
-        let isTodayFinishedCircle = isCompleted && (day == challenge.completedCheckIns) && isDoneForToday
+        let isToday = (day == todayIndex)
         
         ZStack {
             Circle()
@@ -2864,7 +2909,7 @@ private struct ChallengeSheet: View {
                 .font(.system(size: 18))
                 .saturation(isCompleted ? 1 : 0)
                 .opacity(isCompleted ? 1 : 0.6)
-            if isTodayFinishedCircle {
+            if isToday {
                 Circle()
                     .strokeBorder(Color.capyDarkBrown, lineWidth: 2)
                     .opacity(0.8)

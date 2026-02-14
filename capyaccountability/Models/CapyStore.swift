@@ -10,7 +10,7 @@ final class CapyStore: ObservableObject {
     @Published private(set) var profile: CapyProfile
     @Published private(set) var goals: UserGoals?
     @Published private(set) var tasks: [CapyTask]
-    @Published private(set) var stats: CapyStats
+    @Published var stats: CapyStats
     @Published var challenge: CapyChallengeState
     @Published private(set) var completionHistory: [CapyCompletionEvent]
 
