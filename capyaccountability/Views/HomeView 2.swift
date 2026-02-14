@@ -33,7 +33,7 @@ extension CapyShopItem {
         CapyShopItem(id: "citrus_treats", emoji: "🍋", title: "Citrus Treats", description: "A snack pack for your capy. Boosts energy.", cost: 28, statReward: "🍋"),
         CapyShopItem(id: "bubble_bath", emoji: "🛁", title: "Bubble Bath", description: "A warm cleanup for your capy after a long day.", cost: 34, statReward: "🛁"),
         CapyShopItem(id: "soft_blanket", emoji: "🧺", title: "Soft Blanket", description: "Comfy rest setup that keeps your capy relaxed.", cost: 30, statReward: "😁"),
-        CapyShopItem(id: "watermelon_bowl", emoji: "🍉", title: "Watermelon Bowl", description: "Fresh fruit serving for your capy’s mood.", cost: 32, statReward: "😁"),
+        CapyShopItem(id: "watermelon_bowl", emoji: "🍉", title: "Watermelon", description: "Fresh fruit serving for your capy’s mood.", cost: 32, statReward: "😁"),
         CapyShopItem(id: "river_toy", emoji: "🦆", title: "River Toy", description: "A playful floatie toy for capy fun time.", cost: 26, statReward: "😁"),
         CapyShopItem(id: "leaf_salad", emoji: "🥬", title: "Leaf Salad", description: "Healthy greens to keep your capy nourished.", cost: 22, statReward: "🍋"),
         CapyShopItem(id: "sun_hat", emoji: "👒", title: "Sun Hat", description: "Cute outdoor hat so your capy stays comfy outside.", cost: 36, statReward: nil),
@@ -887,21 +887,29 @@ struct HomeView2: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 } label: {
                     HStack(spacing: 4) {
-                        let isDoneToday = Calendar.current.isDateInToday(store.challenge.lastCheckInDate ?? .distantPast)
-                        
-                        Text("🔥")
-                            .font(.system(size: 16))
-                            .saturation(isDoneToday ? 1 : 0)
-                            .opacity(isDoneToday ? 1 : 0.6)
-//                            .padding(.bottom, 2)
-                        
-                        Text("\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
-                            .font(.custom("Gaegu-Regular", size: 20))
-                            .foregroundStyle(Color.capyDarkBrown)
+                        if store.challenge.isActive {
+                            let isDoneToday = Calendar.current.isDateInToday(store.challenge.lastCheckInDate ?? .distantPast)
+                            
+                            Text("🔥")
+                                .font(.system(size: 16))
+                                .saturation(isDoneToday ? 1 : 0)
+                                .opacity(isDoneToday ? 1 : 0.6)
+                            //                            .padding(.bottom, 2)
+                            
+                            Text("\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)")
+                                .font(.custom("Gaegu-Regular", size: 20))
+                                .foregroundStyle(Color.capyDarkBrown)
+                        } else {
+                            Text("🎯 challenge")
+                                .font(.custom("gaegu-Regular", size: 16))
+                                .foregroundStyle(Color.capyDarkBrown)
+//                                .saturation(0)
+//                                .opacity(0.6)
+                        }
                     }
                     .foregroundStyle(Color.capyDarkBrown)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 9)
                     .background(.white.opacity(0.92))
                     .clipShape(Capsule())
                 }
@@ -2390,7 +2398,7 @@ private struct CapyShopSheet: View {
                 .padding(.top, 8)
             
             HStack {
-                Text("CapyShop")
+                Text("capy shop")
                     .font(.custom("Gaegu-Regular", size: 28))
                     .foregroundStyle(Color.capyDarkBrown)
                 Spacer()
@@ -2408,21 +2416,21 @@ private struct CapyShopSheet: View {
 //                .clipShape(Capsule())
                 
                 Text("🪙")
-                    .font(.custom("Gaegu-Regular", size: 24))
+                    .font(.custom("Gaegu-Regular", size: 20))
                     .padding(.top, 2)
                 Text(String(balance))
-                    .font(.custom("Gaegu-Regular", size: 28))
+                    .font(.custom("Gaegu-Regular", size: 26))
                     .foregroundStyle(Color.capyDarkBrown)
                     .contentTransition(.numericText(value: Double(balance)))
                     .animation(.snappy, value: balance)
             }
             .padding(.horizontal, 20)
             
-            Text("care drop for your capy: \(dayLabel)")
-                .font(.custom("Gaegu-Regular", size: 17))
-                .foregroundStyle(Color.capyBrown.opacity(0.75))
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+//            Text("care drop for your capy: \(dayLabel)")
+//                .font(.custom("Gaegu-Regular", size: 17))
+//                .foregroundStyle(Color.capyBrown.opacity(0.75))
+//                .padding(.horizontal, 20)
+//                .padding(.top, 12)
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 10) {
@@ -2784,25 +2792,23 @@ private struct ChallengeSheet: View {
                     Text("challenge mode")
                         .font(.custom("Gaegu-Regular", size: 32))
                         .foregroundStyle(Color.capyDarkBrown)
-                    if challenge.isActive {
-                        Text("keep the streak alive!")
-                            .font(.custom("Gaegu-Regular", size: 16))
-                            .foregroundStyle(Color.capyBrown)
-                    }
-                }
-                Spacer()
-                HStack(spacing: 6) {
-                    Text("🪙")
-                    Text("\(balance)")
-                        .font(.custom("Gaegu-Regular", size: 24))
+                    Text("keep the streak alive!")
+                        .font(.custom("Gaegu-Regular", size: 16))
                         .foregroundStyle(Color.capyBrown)
                 }
-                .padding(.bottom, 16)
+                Spacer()
+//                HStack(spacing: 6) {
+//                    Text("🪙")
+//                    Text("\(balance)")
+//                        .font(.custom("Gaegu-Regular", size: 24))
+//                        .foregroundStyle(Color.capyBrown)
+//                }
+//                .padding(.bottom, 16)
 //                .background(Color.white.opacity(0.5))
 //                .clipShape(Capsule())
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+//            .padding(.bottom, 20)
 
             if challenge.isActive {
                 activeChallengeView
@@ -2856,40 +2862,40 @@ private struct ChallengeSheet: View {
                     }
                 }
                 
-//                VStack(spacing: 10) {
-//                    Text("--- DEBUG ZONE ---")
-//                        .font(.system(size: 10, weight: .bold))
-//                        .foregroundStyle(.gray)
-//                    
-//                    HStack {
-//                        Button("Simulate Next Day") {
-//                            print("Button Tapped: Simulate Next Day")
-//                            store.debugSimulateNextDay()
-//                        }
-//                        .font(.caption)
-//                        .padding(8)
-//                        .background(Color.blue.opacity(0.2))
-//                        .cornerRadius(8)
-//                        
-//                        Button("+1 Check In") {
-//                            print("Button Tapped: +1 Check In")
-//                            store.debugSimulateNextDay()
-//                        }
-//                        .font(.caption)
-//                        .padding(8)
-//                        .background(Color.blue.opacity(0.2))
-//                        .cornerRadius(8)
-//                    }
-//                    
-//                    Button("Force Fail / Reset") {
-//                        store.stopChallenge(completed: false)
-//                    }
-//                    .font(.caption)
-//                    .padding(8)
-//                    .background(Color.red.opacity(0.2))
-//                    .cornerRadius(8)
-//                }
-//                .padding(.top, 20)
+                VStack(spacing: 10) {
+                    Text("--- DEBUG ZONE ---")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.gray)
+                    
+                    HStack {
+                        Button("Simulate Next Day") {
+                            print("Button Tapped: Simulate Next Day")
+                            store.debugSimulateNextDay()
+                        }
+                        .font(.caption)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(8)
+                        
+                        Button("+1 Check In") {
+                            print("Button Tapped: +1 Check In")
+                            store.debugSimulateNextDay()
+                        }
+                        .font(.caption)
+                        .padding(8)
+                        .background(Color.blue.opacity(0.2))
+                        .cornerRadius(8)
+                    }
+                    
+                    Button("Force Fail / Reset") {
+                        store.stopChallenge(completed: false)
+                    }
+                    .font(.caption)
+                    .padding(8)
+                    .background(Color.red.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                .padding(.top, 20)
             }
         }
     }
