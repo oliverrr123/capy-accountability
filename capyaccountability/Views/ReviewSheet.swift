@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ReviewSheet: View {
+struct ReviewSheetOld: View {
     @Environment(\.dismiss) private var dismiss
 
     @ObservedObject var store: CapyStore

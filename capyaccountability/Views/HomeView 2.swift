@@ -3054,6 +3054,141 @@ struct FlyingStatModifier: ViewModifier {
     }
 }
 
+struct ReviewSheet: View {
+    @ObservedObject var store: CapyStore
+    @Environment(\.dismiss) private var dismiss
+    
+    private let columns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 16)
+            
+            Text("career stats")
+                .font(.custom("Gaegu-Regular", size: 32))
+                .foregroundStyle(Color.capyDarkBrown)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        statCard(
+                            emoji: "🏆",
+                            title: "Level \(store.progressionLevel)",
+                            subtitle: store.progressionTitle,
+                            color: .capyBlue
+                        )
+                        statCard(
+                            emoji: "🔥",
+                            title: "\(store.stats.streak) Day",
+                            subtitle: "current streak",
+                            color: .orange
+                        )
+                        statCard(
+                            emoji: "✅",
+                            title: "\(store.stats.totalCompletions)",
+                            subtitle: "total tasks done",
+                            color: .green
+                        )
+                        statCard(
+                            emoji: "⚡",
+                            title: "\(store.stats.xp) XP",
+                            subtitle: "lifetime XP",
+                            color: .purple
+                        )
+                    }
+                    .padding(.horizontal, 24)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack{
+                            Text("progress to next lvl")
+                                .font(.custom("Gaegu-Regular", size: 18))
+                                .foregroundStyle(Color.capyBrown)
+                            Spacer()
+                            Text("\(store.xpIntoCurrentLevel) / \(store.xpNeededForNextLevel) XP")
+                                .font(.custom("Gaegu-Regular", size: 16))
+                                .foregroundStyle(Color.capyBrown.opacity(0.7))
+                        }
+                        
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.black.opacity(0.05))
+                                    .frame(height: 12)
+                                
+                                Capsule()
+                                    .fill(Color.capyBlue)
+                                    .frame(width: geo.size.width * store.progressionToNextLevel, height: 12)
+                            }
+                        }
+                        .frame(height: 12)
+                    }
+                    .padding(20)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .padding(.horizontal, 24)
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("unlocked perks")
+                            .font(Font.custom("Gaegu-Regular", size: 24))
+                            .foregroundStyle(Color.capyDarkBrown)
+                            .padding(.horizontal, 4)
+                        
+                        ForEach(store.unlockedProgressionPerks, id: \.self) { perk in
+                            HStack(spacing: 12) {
+                                Image(systemName: "lock.open.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundStyle(Color.capyBlue)
+                                Text(perk)
+                                    .font(.custom("Gaegu-Regular", size: 18))
+                                    .foregroundStyle(Color.capyBrown)
+                                Spacer()
+                            }
+                            .padding(16)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    
+                    Spacer().frame(height: 40)
+                }
+            }
+        }
+        .background(Color.capyBeige.opacity(0.98))
+    }
+    
+    @ViewBuilder
+    private func statCard(emoji: String, title: String, subtitle: String, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Text(emoji)
+                .font(.system(size: 32))
+            
+            VStack(spacing: 2) {
+                Text(title)
+                    .font(.custom("Gaegu-Regular", size: 22))
+                    .foregroundStyle(Color.capyDarkBrown)
+                
+                Text(subtitle)
+                    .font(.custom("Gaegu-Regular", size: 14))
+                    .foregroundStyle(Color.capyBrown.opacity(0.8))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.03), radius: 5, x: 0, y: 4)
+    }
+}
+
 #Preview {
     HomeView2(store: CapyStore())
 }
