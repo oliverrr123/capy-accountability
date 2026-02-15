@@ -354,8 +354,7 @@ struct HomeView2: View {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             },
             onClearFreezes: {
-                store.stats.freezeProtectors = 0
-                store.save()
+                store.debugClearFreezes()
                 UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             }
         )
@@ -1132,7 +1131,7 @@ struct HomeView2: View {
                 Image(isCapyCrying ? "capy_cry" : isCapySleeping ? "capy_sleep" : "capy_sit")
                     .resizable()
                     .scaledToFill()
-                    .frame(width: UIScreen.main.bounds.width)
+                    .frame(width: UIScreen.main.bounds.width + 4)
 //                .padding(.bottom, 10)
 //                .onTapGesture {
 //                    if !showChatInput {
@@ -2026,7 +2025,6 @@ private struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @Binding var userName: String
-    
     @Binding var isEnabled: Bool
     @Binding var mode: CapyLiveActivityMode
     @Binding var goalScope: CapyLiveActivityGoalScope
@@ -2050,174 +2048,162 @@ private struct SettingsSheet: View {
         (6, "friday"),
         (7, "saturday")
     ]
-    
-//    init(isEnabled: Binding<Bool>,
-//         mode: Binding<CapyLiveActivityMode>,
-//         goalScope: Binding<CapyLiveActivityGoalScope>,
-//         pendingDailyCount: Int,
-//         pendingOtherCount: Int,
-//         onApply: @escaping () -> Void) {
-//        
-//        self._isEnabled = isEnabled
-//        self._mode = mode
-//        self._goalScope = goalScope
-//        self.pendingDailyCount = pendingDailyCount
-//        self.pendingOtherCount = pendingOtherCount
-//        self.onApply = onApply
-//        
-//        let font = UIFont(name: "Gaegu-Regular", size: 18) ?? UIFont.systemFont(ofSize: 18)
-//        let attributes: [NSAttributedString.Key: Any] = [
-//            .font: font,
-//            .foregroundColor: Color.capyDarkBrown
-//        ]
-//        UISegmentedControl.appearance().setTitleTextAttributes(attributes, for: .normal)
-//        UISegmentedControl.appearance().setTitleTextAttributes(attributes, for: .selected)
-//    }
 
     var body: some View {
-        VStack(spacing: 24) {
-            dragIndicator
-            titleHeader
+        VStack(spacing: 20) {
+            Capsule()
+                .fill(Color.gray.opacity(0.3))
+                .frame(width: 60, height: 6)
+                .padding(.top, 16)
+            
+            Text("settings")
+                .font(.custom("Gaegu-Regular", size: 32))
+                .foregroundStyle(Color.capyDarkBrown)
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    Button("done") {
+                        let feedback = UINotificationFeedbackGenerator()
+                        feedback.notificationOccurred(.success)
+                        onApply()
+                        dismiss()
+                    }
+                    .font(.custom("Gaegu-Regular", size: 20))
+                    .foregroundStyle(Color.capyBlue)
+                    .padding(.trailing, 24)
+                    .padding(.top, 4)
+                }
             
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 28) {
-                    profileSection
-                    Divider().padding(.horizontal, 20)
-                    remindersSection
-                    Divider().padding(.horizontal, 20)
-                    liveActivitySection
-                }
-                .padding(.bottom, 20)
-            }
-                    
-            saveButton
-        }
-        .background(Color.white)
-    }
-    
-    private var dragIndicator: some View {
-        Capsule()
-            .fill(Color.gray.opacity(0.3))
-            .frame(width: 60, height: 6)
-            .padding(.top, 16)
-    }
-    
-    private var titleHeader: some View {
-        Text("settings")
-            .font(.custom("Gaegu-Regular", size: 32))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-    }
-    
-    private var profileSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("your name")
-                .font(.custom("Gaegu-Regular", size: 24))
-                .foregroundStyle(Color.capyDarkBrown)
-            
-            TextField("Enter name", text: $userName)
-                .font(.custom("Gaegu-Regular", size: 22))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.gray.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .padding(.horizontal, 20)
-    }
-    
-    private var liveActivitySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("live activity")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-                Spacer()
-                Toggle("", isOn: $isEnabled)
-                    .tint(Color.green)
-                    .labelsHidden()
-//                            Text("Sleek lock-screen view with daily priority first.")
-//                                .font(.custom("Gaegu-Regular", size: 18))
-//                                .foregroundStyle(Color.capyBrown.opacity(0.8))
-            }
-            
-            Text("Show your goals on the lock screen.")
-                .font(.custom("Gaegu-Regular", size: 20))
-                .foregroundStyle(Color.capyBrown.opacity(0.8))
-            
-            if isEnabled {
-                liveActivityPickers
-            }
-        }
-        .padding(.horizontal, 20)
-        .opacity(isEnabled ? 1.0 : 0.6) // !!!
-        .animation(.spring, value: isEnabled)
-    }
-
-    private var remindersSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("reminders")
-                    .font(.custom("Gaegu-Regular", size: 24))
-                    .foregroundStyle(Color.capyDarkBrown)
-                Spacer()
-                Toggle("", isOn: $remindersEnabled)
-                    .tint(Color.green)
-                    .labelsHidden()
-            }
-
-            Text("Local notifications for daily and weekly review.")
-                .font(.custom("Gaegu-Regular", size: 20))
-                .foregroundStyle(Color.capyBrown.opacity(0.8))
-
-            if remindersEnabled {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("daily review")
-                            .font(.custom("Gaegu-Regular", size: 20))
-                            .foregroundStyle(Color.capyBrown)
-                        Spacer()
-                        DatePicker(
-                            "",
-                            selection: timeBinding(minutes: $dailyReminderMinutes),
-                            displayedComponents: .hourAndMinute
-                        )
-                        .labelsHidden()
-                    }
-
-                    HStack {
-                        Text("weekly review")
-                            .font(.custom("Gaegu-Regular", size: 20))
-                            .foregroundStyle(Color.capyBrown)
-                        Spacer()
-                        Picker("weekday", selection: $weeklyReminderWeekday) {
-                            ForEach(weekdayOptions, id: \.value) { option in
-                                Text(option.title).tag(option.value)
-                            }
+                VStack(spacing: 16) {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Text("Name")
+                                .font(.custom("Gaegu-Regular", size: 22))
+                                .foregroundStyle(Color.capyDarkBrown)
+                            Spacer()
+                            TextField("Your name", text: $userName)
+                                .font(.custom("Gaegu-Regular", size: 22))
+                                .multilineTextAlignment(.trailing)
+                                .foregroundStyle(Color.gray)
                         }
-                        .pickerStyle(.menu)
+                        .padding(16)
                     }
-
-                    HStack {
-                        Text("weekly time")
-                            .font(.custom("Gaegu-Regular", size: 20))
-                            .foregroundStyle(Color.capyBrown)
-                        Spacer()
-                        DatePicker(
-                            "",
-                            selection: timeBinding(minutes: $weeklyReminderMinutes),
-                            displayedComponents: .hourAndMinute
-                        )
-                        .labelsHidden()
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.03), radius: 5, x: 0, y: 2)
+                    
+                    VStack(spacing: 0) {
+                        Toggle(isOn: $remindersEnabled.animation(.spring(response: 0.35, dampingFraction: 0.7))) {
+                            Text("Reminders")
+                                .font(.custom("Gaegu-Regular", size: 22))
+                                .foregroundStyle(Color.capyDarkBrown)
+                        }
+                        .tint(Color.capyBlue)
+                        .padding(16)
+                        .zIndex(1)
+                        
+//                        if remindersEnabled {
+                            VStack(spacing: 0) {
+                                Divider().padding(.horizontal, 16)
+                                
+                                VStack(spacing: 18) {
+                                    HStack {
+                                        Text("Daily Review")
+                                            .font(.custom("Gaegu-Regular", size: 18))
+                                            .foregroundStyle(Color.capyBrown)
+                                        Spacer()
+                                        DatePicker("", selection: timeBinding(minutes: $dailyReminderMinutes), displayedComponents: .hourAndMinute)
+                                            .labelsHidden()
+                                            .scaleEffect(0.85)
+                                    }
+                                    
+                                    HStack {
+                                        Text("Weekly Review")
+                                            .font(.custom("Gaegu-Regular", size: 18))
+                                            .foregroundStyle(Color.capyBrown)
+                                        Spacer()
+                                        
+                                        HStack(spacing: -4) {
+                                            Picker("", selection: $weeklyReminderWeekday) {
+                                                ForEach(weekdayOptions, id: \.value) { option in
+                                                    Text(option.title).tag(option.value)
+                                                }
+                                            }
+                                            .pickerStyle(.menu)
+                                            .scaleEffect(0.85)
+                                            .labelsHidden()
+                                            .padding(.leading, -16)
+                                            
+                                            DatePicker("", selection: timeBinding(minutes: $weeklyReminderMinutes), displayedComponents: .hourAndMinute)
+                                                .labelsHidden()
+                                                .scaleEffect(0.85)
+                                        }
+                                    }
+                                }
+                                .padding(16)
+                                //                            .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+                            }
+//                            .compositingGroup()
+//                            .transition(.opacity)
+                            .frame(height: remindersEnabled ? nil : 0, alignment: .top)
+                            .opacity(remindersEnabled ? 1 : 0)
+                            .clipped()
+//                        }
                     }
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.03), radius: 5, x: 0, y: 2)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: remindersEnabled)
+                    
+                    VStack(spacing: 0) {
+                        Toggle(isOn: $isEnabled) {
+                            Text("Live Activity")
+                                .font(.custom("Gaegu-Regular", size: 22))
+                                .foregroundStyle(Color.capyDarkBrown)
+                        }
+                        .tint(Color.capyBlue)
+                        .padding(16)
+                        
+                        if isEnabled {
+                            Divider().padding(.horizontal, 16)
+                            
+                            VStack(spacing: 16) {
+                                CapySegmentedPicker(
+                                    options: CapyLiveActivityMode.allCases,
+                                    selection: $mode,
+                                    title: \.title,
+                                    namespace: animationNamespace,
+                                    namespaceId: "mode_slide"
+                                )
+                                
+                                CapySegmentedPicker(
+                                    options: CapyLiveActivityGoalScope.allCases,
+                                    selection: $goalScope,
+                                    title: \.title,
+                                    namespace: animationNamespace,
+                                    namespaceId: "goalscope_slide"
+                                )
+                                
+//                                Text("Pending: \(pendingDailyCount) daily, \(pendingOtherCount) others")
+//                                    .font(.custom("Gaegu-Regular", size: 14))
+//                                    .foregroundStyle(.gray.opacity(0.6))
+//                                    .frame(maxWidth: .infinity, alignment: .center)
+                            }
+                            .padding(16)
+                        }
+                    }
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.03), radius: 5, x: 0, y: 2)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isEnabled)
                 }
-                .padding(.top, 4)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 40)
             }
         }
-        .padding(.horizontal, 20)
-        .opacity(remindersEnabled ? 1.0 : 0.7)
-        .animation(.spring, value: remindersEnabled)
+        .background(Color.capyBeige.opacity(0.98))
     }
-
+    
     private func timeBinding(minutes: Binding<Int>) -> Binding<Date> {
         Binding<Date>(
             get: {
@@ -2237,128 +2223,46 @@ private struct SettingsSheet: View {
             }
         )
     }
-    
-    private var liveActivityPickers: some View {
-        VStack(alignment: .leading, spacing: 20) { // !!!
-            liveActivityPickerMode
-            liveActivityPickerGoalScope
-            
-            Text("Pending: \(pendingDailyCount) daily, \(pendingOtherCount) others.")
-                .font(.custom("Gaegu-Regular", size: 16))
-                .foregroundStyle(Color.capyBrown.opacity(0.6))
-                .padding(.top, 4)
-        }
-    }
-    
-    private var liveActivityPickerMode: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Mode")
-                .font(.custom("Gaegu-Regular", size: 20))
-                .foregroundStyle(Color.capyBrown)
-            
-            
-            HStack(spacing: 0) {
-                ForEach(CapyLiveActivityMode.allCases, id: \.self) { option in
-                    Button {
-                        mode = option
-//                            withAnimation(.snappy) { mode = option }
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    } label: {
-                        Text(option.title)
-                            .font(.custom("Gaegu-Regular", size: 18))
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                            .background{
-                                if mode == option {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.white)
-                                        .matchedGeometryEffect(id: "modeBackground", in: animationNamespace)
-                                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
-                                }
+}
+
+struct CapySegmentedPicker<T: Hashable>: View {
+    let options: [T]
+    @Binding var selection: T
+    let title: (T) -> String
+    let namespace: Namespace.ID
+    let namespaceId: String
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(options, id: \.self) { option in
+                let isSelected = selection == option
+                
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    selection = option
+                } label: {
+                    Text(title(option))
+                        .font(.custom("Gaegu-Regular", size: 18))
+                        .foregroundStyle(isSelected ? .white : .gray)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background {
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.capyBlue)
+                                    .shadow(color: .black.opacity(0.05), radius: 1, x: 0, y: 1)
+                                    .matchedGeometryEffect(id: namespaceId, in: namespace)
                             }
-                            .foregroundStyle(Color.capyDarkBrown)
-//                                .clipShape(RoundedRectangle(cornerRadius: 8))
-//                                .shadow(color: mode == option ? .black.opacity(0.1) : .clear, radius: 2, y: 1)
-                    }
-                    .buttonStyle(.plain)
+                        }
                 }
+                .buttonStyle(.plain)
             }
-            .padding(4)
-            .background(Color.gray.opacity(0.15))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .animation(.snappy, value: mode)
-            
-            Text(mode.subtitle)
-                .font(.custom("Gaegu-Regular", size: 16))
-                .foregroundStyle(Color.capyBrown.opacity(0.7))
-                .fixedSize(horizontal: false, vertical: true)
-            
         }
+        .padding(4)
+        .background(Color.gray.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: selection)
     }
-    
-    private var liveActivityPickerGoalScope: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Goal scope")
-                .font(.custom("Gaegu-Regular", size: 20))
-                .foregroundStyle(Color.capyBrown)
-            
-            HStack(spacing: 0) {
-                ForEach(CapyLiveActivityGoalScope.allCases, id: \.self) { option in
-                    Button {
-//                            withAnimation(.spring(response: 0.3)) { goalScope = option }
-                        goalScope = option
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    } label: {
-                        Text(option.title)
-                            .font(.custom("Gaegu-Regular", size: 18))
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                            .background{
-                                if goalScope == option {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color.white)
-                                        .matchedGeometryEffect(id: "goalScopeBackground", in: animationNamespace)
-                                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
-                                }
-                            }
-                            .foregroundStyle(Color.capyDarkBrown)
-//                                .clipShape(RoundedRectangle(cornerRadius: 8))
-//                                .shadow(color: goalScope == option ? .black.opacity(0.1) :.clear, radius: 2, y: 1)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(4)
-            .background(Color.gray.opacity(0.15))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .animation(.snappy, value: goalScope)
-            
-            Text(goalScope.subtitle)
-                .font(Font.custom("Gaegu-Regular", size: 16))
-                .foregroundStyle(Color.capyBrown.opacity(0.7))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
-    
-    private var saveButton: some View {
-        Button {
-            let feedback = UINotificationFeedbackGenerator()
-            feedback.notificationOccurred(.success)
-            onApply()
-            dismiss()
-        } label: {
-            Text("Save Changes")
-                .font(.custom("Gaegu-Regular", size: 24))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.capyBlue)
-                .foregroundStyle(.white)
-                .clipShape(Capsule())
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 10)
-    }
-    
 }
 
 private struct CapyShopSheet: View {
@@ -2450,7 +2354,7 @@ private struct CapyShopSheet: View {
                         Button {
                             onReset()
                         } label: {
-                            Text("[DEBUG: RESET SHOP & +100 COINS")
+                            Text("[DEBUG: RESET SHOP & +100 COINS]")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.gray.opacity(0.5))
                         }
@@ -2458,7 +2362,7 @@ private struct CapyShopSheet: View {
                         Button {
                             onRefillStats()
                         } label: {
-                            Text("[DEBUG: REFILL ALL STATS")
+                            Text("[DEBUG: REFILL ALL STATS]")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(Color.green.opacity(0.6))
                         }
@@ -2788,7 +2692,7 @@ private struct ChallengeSheet: View {
                 .padding(.top, 10)
             
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(spacing: 4) {
                     Text("challenge mode")
                         .font(.custom("Gaegu-Regular", size: 32))
                         .foregroundStyle(Color.capyDarkBrown)
@@ -2796,7 +2700,7 @@ private struct ChallengeSheet: View {
                         .font(.custom("Gaegu-Regular", size: 16))
                         .foregroundStyle(Color.capyBrown)
                 }
-                Spacer()
+//                Spacer()
 //                HStack(spacing: 6) {
 //                    Text("🪙")
 //                    Text("\(balance)")
@@ -2808,7 +2712,7 @@ private struct ChallengeSheet: View {
 //                .clipShape(Capsule())
             }
             .padding(.horizontal, 24)
-//            .padding(.bottom, 20)
+            .padding(.bottom, 20)
 
             if challenge.isActive {
                 activeChallengeView
@@ -2862,40 +2766,40 @@ private struct ChallengeSheet: View {
                     }
                 }
                 
-                VStack(spacing: 10) {
-                    Text("--- DEBUG ZONE ---")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.gray)
-                    
-                    HStack {
-                        Button("Simulate Next Day") {
-                            print("Button Tapped: Simulate Next Day")
-                            store.debugSimulateNextDay()
-                        }
-                        .font(.caption)
-                        .padding(8)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(8)
-                        
-                        Button("+1 Check In") {
-                            print("Button Tapped: +1 Check In")
-                            store.debugSimulateNextDay()
-                        }
-                        .font(.caption)
-                        .padding(8)
-                        .background(Color.blue.opacity(0.2))
-                        .cornerRadius(8)
-                    }
-                    
-                    Button("Force Fail / Reset") {
-                        store.stopChallenge(completed: false)
-                    }
-                    .font(.caption)
-                    .padding(8)
-                    .background(Color.red.opacity(0.2))
-                    .cornerRadius(8)
-                }
-                .padding(.top, 20)
+//                VStack(spacing: 10) {
+//                    Text("--- DEBUG ZONE ---")
+//                        .font(.system(size: 10, weight: .bold))
+//                        .foregroundStyle(.gray)
+//                    
+//                    HStack {
+//                        Button("Simulate Next Day") {
+//                            print("Button Tapped: Simulate Next Day")
+//                            store.debugSimulateNextDay()
+//                        }
+//                        .font(.caption)
+//                        .padding(8)
+//                        .background(Color.blue.opacity(0.2))
+//                        .cornerRadius(8)
+//                        
+//                        Button("+1 Check In") {
+//                            print("Button Tapped: +1 Check In")
+//                            store.debugSimulateNextDay()
+//                        }
+//                        .font(.caption)
+//                        .padding(8)
+//                        .background(Color.blue.opacity(0.2))
+//                        .cornerRadius(8)
+//                    }
+//                    
+//                    Button("Force Fail / Reset") {
+//                        store.stopChallenge(completed: false)
+//                    }
+//                    .font(.caption)
+//                    .padding(8)
+//                    .background(Color.red.opacity(0.2))
+//                    .cornerRadius(8)
+//                }
+//                .padding(.top, 20)
             }
         }
     }

@@ -536,6 +536,11 @@ final class CapyStore: ObservableObject {
         objectWillChange.send()
         print("DEBUG: Simulating new day. Tasks reset, last check-in moved to yesterday.")
     }
+    
+    func debugClearFreezes() {
+        stats.freezeProtectors = 0
+        save()
+    }
 }
 
 //extension CapyStore {
