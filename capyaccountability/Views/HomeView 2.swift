@@ -5,6 +5,8 @@ import Combine
 import SwiftUI
 import Speech
 
+typealias CapyLiveActivitySnapshot = CapyLiveActivityAttributes.ContentState
+
 struct StatItem: Identifiable {
     let id = UUID()
     var emoji: String
@@ -465,6 +467,20 @@ struct HomeView2: View {
     }
     
     private var logicLayer: some View {
+        configureHomeContent
+            .onReceive(goalCheckInTimer) { _ in
+                maybeAskGoalCheckIn()
+            }
+            .onReceive(capySleepTimer) { _ in
+                let resetMessages = store.resetDailyIfNeeded()
+                if let message = resetMessages.last {
+                    capyText = message
+                }
+                refreshCapySleepState()
+            }
+    }
+    
+    private var configureHomeContent: some View {
         homeContent
         .onReceive(Publishers.keyboardHeight) { self.keyboardHeight = $0 }
         .ignoresSafeArea()
@@ -523,16 +539,6 @@ struct HomeView2: View {
         }
         .onChange(of: isCapySleeping) { _, _ in
             syncLiveActivity()
-        }
-        .onReceive(goalCheckInTimer) { _ in
-            maybeAskGoalCheckIn()
-        }
-        .onReceive(capySleepTimer) { _ in
-            let resetMessages = store.resetDailyIfNeeded()
-            if let message = resetMessages.last {
-                capyText = message
-            }
-            refreshCapySleepState()
         }
     }
     
@@ -1827,81 +1833,52 @@ struct HomeView2: View {
 
     private func syncLiveActivity(isAwayOverride: Bool? = nil) {
         let isAway = isAwayOverride ?? (scenePhase != .active)
-        let snapshot = makeLiveActivitySnapshot(isAway: isAway)
-        liveActivityManager.sync(enabled: liveActivityEnabled, snapshot: snapshot)
+        
+        let contentState = makeLiveActivitySnapshot(isAway: isAway)
+        
+        liveActivityManager.sync(enabled: liveActivityEnabled, snapshot: contentState)
     }
-
-    private func makeLiveActivitySnapshot(isAway: Bool) -> CapyLiveActivitySnapshot {
-        let totalTasks = store.tasks.count
-        let completedTasks = store.tasks.filter { $0.isDone }.count
-        let pendingCount = max(totalTasks - completedTasks, 0)
-        let dailyTotal = store.tasks.filter { $0.frequency == .daily }.count
-        let dailyCompleted = store.tasks.filter { $0.frequency == .daily && $0.isDone }.count
-        let tasksForLiveActivity = liveActivityCandidateTasks
-        let nextTask = tasksForLiveActivity.first
-        let isDailyPriority = nextTask?.frequency == .daily
-        let energyLevel = stats.first(where: { $0.emoji == "🍋" })?.points ?? 3
-        let needsFood = energyLevel <= 2 || store.stats.mood == "sleepy"
-
+    
+    private func makeLiveActivitySnapshot(isAway: Bool) -> CapyLiveActivityAttributes.ContentState {
+        let dailyTasks = store.tasks.filter { $0.frequency == .daily }
+        let nextTask = liveActivityCandidateTasks.first
+        
         let focusText: String
-        let progressText: String
-        let headline: String
-
-        switch liveActivityMode {
-        case .capyCare:
-            if needsFood {
-                focusText = "Capy needs food soon. Give a quick care boost."
-            } else if let title = nextTask?.title {
-                focusText = "Capy is good. Next goal: \(title)"
-            } else {
-                focusText = "Capy is good and your goal list is clear."
-            }
-
-            progressText = "daily \(dailyCompleted)/\(dailyTotal) • energy \(Int(energyLevel.rounded()))/5"
-
-            if isAway {
-                headline = needsFood ? "away care alert: feed capy" : "away care check: capy is stable"
-            } else if isCapySleeping {
-                headline = "capy is sleeping"
-            } else {
-                headline = needsFood ? "capy care priority: food" : "capy care: all good"
-            }
-
-        case .accountability:
-            if let title = nextTask?.title {
-                focusText = isDailyPriority ? "Daily priority: \(title)" : title
-            } else if liveActivityGoalScope == .otherGoalsOnly {
-                focusText = "No non-daily goals pending."
-            } else {
-                focusText = "All goals complete."
-            }
-
-            progressText = "daily \(dailyCompleted)/\(dailyTotal) • total \(completedTasks)/\(totalTasks)"
-
-            if isAway {
-                headline = pendingCount == 0 ? "away accountability: all clear" : "away accountability: \(pendingCount) goals left"
-            } else if isCapySleeping {
-                headline = "capy is sleeping"
-            } else {
-                headline = "accountability mode"
-            }
+        if let title = nextTask?.title {
+            focusText = title
+        } else if !dailyTasks.isEmpty {
+            focusText = "Daily goals complete!"
+        } else {
+            focusText = "No active goals."
         }
-
-        let trimmedName = store.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        return CapyLiveActivitySnapshot(
-            profileName: trimmedName.isEmpty ? "there" : trimmedName,
-            headline: headline,
+        
+        var warning: String? = nil
+//        if store.challenge.isActive {
+//            challengeText = "\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)"
+//        }
+        
+        if !isCapySleeping {
+            let currentEnergy = stats.first(where: { $0.emoji == "🍋" })?.points ?? 3
+            let currentHygiene = stats.first(where: { $0.emoji == "🛁" })?.points ?? 3
+            let currentMood = stats.first(where: { $0.emoji == "😁" })?.points ?? 3
+            
+            if currentEnergy <= 1 { warning = "Low Energy 🍋" }
+            if currentHygiene <= 1 { warning = "Needs Bath 🛁" }
+            if currentMood <= 1 { warning = "Sad Capy 😭" }
+        }
+        
+        var challengeText: String? = nil
+        if store.challenge.isActive {
+            challengeText = "\(store.challenge.completedCheckIns)/\(store.challenge.length.rawValue)"
+        }
+        
+        return CapyLiveActivityAttributes.ContentState(
             focusText: focusText,
-            progressText: progressText,
-            coins: store.stats.coins,
-            isSleeping: isCapySleeping,
-            mood: store.stats.mood,
-            isAway: isAway,
-            mode: liveActivityMode.rawValue,
-            goalScope: liveActivityGoalScope.rawValue,
-            needsFood: needsFood,
-            isDailyPriority: isDailyPriority
+            streak: Int(store.stats.streak),
+            coins: Int(store.stats.coins),
+            challengeStatus: challengeText,
+            warningText: warning,
+            isSleeping: isCapySleeping
         )
     }
     

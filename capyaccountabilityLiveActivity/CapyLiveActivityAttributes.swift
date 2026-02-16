@@ -3,17 +3,21 @@ import Foundation
 
 struct CapyLiveActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
-        var headline: String
         var focusText: String
-        var progressText: String
+        var streak: Int
         var coins: Int
+        var challengeStatus: String?
+        var warningText: String?
         var isSleeping: Bool
-        var mood: String
-        var isAway: Bool
-        var mode: String
-        var goalScope: String
-        var needsFood: Bool
-        var isDailyPriority: Bool
+        
+        public init(focusText: String, streak: Int, coins: Int, challengeStatus: String? = nil, warningText: String? = nil, isSleeping: Bool) {
+            self.focusText = focusText
+            self.streak = streak
+            self.coins = coins
+            self.challengeStatus = challengeStatus
+            self.warningText = warningText
+            self.isSleeping = isSleeping
+        }
     }
 
     var profileName: String

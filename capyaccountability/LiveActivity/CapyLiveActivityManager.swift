@@ -4,10 +4,10 @@ import Foundation
 
 @MainActor
 final class CapyLiveActivityManager: ObservableObject {
-    private var lastSnapshot: CapyLiveActivitySnapshot?
+    private var lastSnapshot: CapyLiveActivityAttributes.ContentState?
     private var currentActivityID: String?
 
-    func sync(enabled: Bool, snapshot: CapyLiveActivitySnapshot) {
+    func sync(enabled: Bool, snapshot: CapyLiveActivityAttributes.ContentState) {
         if !enabled {
             lastSnapshot = nil
             Task {
@@ -26,16 +26,20 @@ final class CapyLiveActivityManager: ObservableObject {
         }
     }
 
-    private func upsertActivity(with snapshot: CapyLiveActivitySnapshot) async {
+    private func upsertActivity(with snapshot: CapyLiveActivityAttributes.ContentState) async {
         if let activity = activeActivity {
-            let content = ActivityContent(state: snapshot.contentState, staleDate: Date.now.addingTimeInterval(45 * 60))
+            let content = ActivityContent(state: snapshot, staleDate: Date.now.addingTimeInterval(45 * 60))
             await activity.update(content)
-            return
+        } else {
+            await startActivity(with: snapshot)
         }
-
-        let attributes = CapyLiveActivityAttributes(profileName: snapshot.profileName)
-        let content = ActivityContent(state: snapshot.contentState, staleDate: Date.now.addingTimeInterval(45 * 60))
-
+    }
+    
+    private func startActivity(with snapshot: CapyLiveActivityAttributes.ContentState) async {
+        let attributes = CapyLiveActivityAttributes(profileName: "Capy")
+        
+        let content = ActivityContent(state: snapshot, staleDate: Date.now.addingTimeInterval(45 * 60))
+        
         do {
             let activity = try Activity<CapyLiveActivityAttributes>.request(
                 attributes: attributes,
@@ -48,24 +52,14 @@ final class CapyLiveActivityManager: ObservableObject {
         }
     }
 
-    private var activeActivity: Activity<CapyLiveActivityAttributes>? {
-        let activities = Activity<CapyLiveActivityAttributes>.activities
-
-        if let currentActivityID,
-           let matching = activities.first(where: { $0.id == currentActivityID }) {
-            return matching
-        }
-
-        let fallback = activities.first
-        currentActivityID = fallback?.id
-        return fallback
-    }
-
     private func endAllActivities() async {
-        let activities = Activity<CapyLiveActivityAttributes>.activities
-        for activity in activities {
+        for activity in Activity<CapyLiveActivityAttributes>.activities {
             await activity.end(nil, dismissalPolicy: .immediate)
         }
         currentActivityID = nil
+    }
+    
+    private var activeActivity: Activity<CapyLiveActivityAttributes>? {
+        Activity<CapyLiveActivityAttributes>.activities.first
     }
 }

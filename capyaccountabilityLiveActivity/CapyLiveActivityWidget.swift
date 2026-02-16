@@ -11,38 +11,47 @@ struct CapyLiveActivityWidget: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    StatusPillView(context: context)
+                    HStack {
+                        if let warning = context.state.warningText {
+                            Text(warning)
+                                .font(.caption.bold()).foregroundStyle(.orange)
+                        } else {
+                            Text("🔥 \(context.state.streak)").font(.headline)
+                        }
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("🪙 \(context.state.coins)")
-                        .font(.headline.monospacedDigit())
-                        .foregroundStyle(.white)
-                }
-
-                DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(context.state.focusText)
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
-                        Text(context.state.progressText)
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
+                    if let challenge = context.state.challengeStatus {
+                        Text("🎯 \(challenge)")
+                    } else {
+                        Text("🪙 \(context.state.coins)")
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 4)
+                }
+                
+                DynamicIslandExpandedRegion(.bottom) {
+                    Text(context.state.focusText)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
                 }
             } compactLeading: {
-                Image(systemName: compactLeadingSymbol(for: context))
-                    .foregroundStyle(compactLeadingColor(for: context))
+                if context.state.isSleeping {
+                    Image(systemName: "moon.fill").foregroundStyle(.blue)
+                } else if context.state.warningText != nil {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                } else {
+                    Text("🔥 \(context.state.streak)")
+                }
             } compactTrailing: {
-                Text("\(context.state.coins)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.white)
+                if let challenge = context.state.challengeStatus {
+                    Text("🎯\(challenge)")
+                } else {
+                    Text("\(context.state.coins)")
+                }
             } minimal: {
-                Text("🪙")
+                Text("🔥")
             }
-            .keylineTint(.white)
         }
     }
 }
@@ -51,125 +60,84 @@ private struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<CapyLiveActivityAttributes>
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.08, green: 0.13, blue: 0.2),
-                    Color(red: 0.12, green: 0.18, blue: 0.28)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
-                    ModeTagView(context: context)
-                    StatusPillView(context: context)
-                    Spacer()
-                    Text("🪙 \(context.state.coins)")
-                        .font(.headline.monospacedDigit())
+        HStack(spacing: 0) {
+            VStack(alignment: .center, spacing: 2) {
+                if context.state.isSleeping {
+                    Text("💤").font(.title2)
+                    Text("Sleep").font(.caption2).opacity(0.7)
+                } else if let warning = context.state.warningText {
+                    Text(warning)
+                        .font(.caption.bold())
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.center)
+                } else {
+                    Text("🔥 \(context.state.streak)")
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.white)
+                    Text("Streak")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.6))
                 }
-
+            }
+            .frame(width: 60)
+            
+            Rectangle()
+                .fill(.white.opacity(0.15))
+                .frame(width: 1)
+                .padding(.vertical, 8)
+            
+            VStack(alignment: .leading) {
+                Text("CURRENT GOAL")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white.opacity(0.5))
+                    .textCase(.uppercase)
+                
                 Text(context.state.focusText)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(2)
-
-                HStack {
-                    Text(context.state.progressText)
-                    Spacer()
-                    Text(footerText(for: context))
-                }
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.82))
+                    .minimumScaleFactor(0.9)
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
+            if context.state.challengeStatus != nil {
+                Rectangle()
+                    .fill(.white.opacity(0.15))
+                    .frame(width: 1)
+                    .padding(.vertical, 8)
+            }
+            
+            if let challenge = context.state.challengeStatus {
+                VStack(alignment: .center, spacing: 2) {
+                    Text("🎯")
+                        .font(.system(size: 18))
+                    Text(challenge)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: 60)
+            } else {
+                VStack(alignment: .center, spacing: 2) {
+                    Text("🪙")
+                        .font(.caption)
+                    Text("\(context.state.coins)")
+                        .font(.caption.bold())
+                }
+                .frame(width: 50)
+                .opacity(0.6)
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 14)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.1, green: 0.1, blue: 0.12), .black],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
     }
-}
-
-private struct StatusPillView: View {
-    let context: ActivityViewContext<CapyLiveActivityAttributes>
-
-    private var indicatorColor: Color {
-        if context.state.isSleeping {
-            return .blue
-        }
-        switch context.state.mood {
-        case "proud":
-            return .green
-        case "focused":
-            return .mint
-        default:
-            return .orange
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(indicatorColor)
-                .frame(width: 8, height: 8)
-            Text(context.state.headline)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.white.opacity(0.12))
-        .clipShape(Capsule())
-    }
-}
-
-private struct ModeTagView: View {
-    let context: ActivityViewContext<CapyLiveActivityAttributes>
-
-    private var modeLabel: String {
-        context.state.mode == "capyCare" ? "care" : "focus"
-    }
-
-    var body: some View {
-        Text(modeLabel)
-            .font(.caption2.weight(.semibold))
-            .textCase(.uppercase)
-            .foregroundStyle(.white.opacity(0.9))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.white.opacity(0.16))
-            .clipShape(Capsule())
-    }
-}
-
-private func compactLeadingSymbol(for context: ActivityViewContext<CapyLiveActivityAttributes>) -> String {
-    if context.state.isSleeping {
-        return "moon.fill"
-    }
-    if context.state.mode == "capyCare" {
-        return context.state.needsFood ? "fork.knife.circle.fill" : "heart.circle.fill"
-    }
-    return context.state.isDailyPriority ? "calendar.circle.fill" : "target"
-}
-
-private func compactLeadingColor(for context: ActivityViewContext<CapyLiveActivityAttributes>) -> Color {
-    if context.state.isSleeping {
-        return .blue
-    }
-    if context.state.mode == "capyCare" {
-        return context.state.needsFood ? .orange : .green
-    }
-    return context.state.isDailyPriority ? .mint : .cyan
-}
-
-private func footerText(for context: ActivityViewContext<CapyLiveActivityAttributes>) -> String {
-    if context.state.isAway {
-        return "Away"
-    }
-    if context.state.goalScope == "otherGoalsOnly" {
-        return "Other goals"
-    }
-    return "All goals"
 }
 
 @main

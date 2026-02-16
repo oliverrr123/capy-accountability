@@ -78,33 +78,33 @@ struct CapyLiveActivityAttributes: ActivityAttributes {
     var profileName: String
 }
 
-struct CapyLiveActivitySnapshot: Equatable {
-    var profileName: String
-    var headline: String
-    var focusText: String
-    var progressText: String
-    var coins: Int
-    var isSleeping: Bool
-    var mood: String
-    var isAway: Bool
-    var mode: String
-    var goalScope: String
-    var needsFood: Bool
-    var isDailyPriority: Bool
-
-    var contentState: CapyLiveActivityAttributes.ContentState {
-        CapyLiveActivityAttributes.ContentState(
-            headline: headline,
-            focusText: focusText,
-            progressText: progressText,
-            coins: coins,
-            isSleeping: isSleeping,
-            mood: mood,
-            isAway: isAway,
-            mode: mode,
-            goalScope: goalScope,
-            needsFood: needsFood,
-            isDailyPriority: isDailyPriority
-        )
-    }
-}
+//struct CapyLiveActivitySnapshot: Equatable {
+//    var profileName: String
+//    var headline: String
+//    var focusText: String
+//    var progressText: String
+//    var coins: Int
+//    var isSleeping: Bool
+//    var mood: String
+//    var isAway: Bool
+//    var mode: String
+//    var goalScope: String
+//    var needsFood: Bool
+//    var isDailyPriority: Bool
+//
+//    var contentState: CapyLiveActivityAttributes.ContentState {
+//        CapyLiveActivityAttributes.ContentState(
+//            headline: headline,
+//            focusText: focusText,
+//            progressText: progressText,
+//            coins: coins,
+//            isSleeping: isSleeping,
+//            mood: mood,
+//            isAway: isAway,
+//            mode: mode,
+//            goalScope: goalScope,
+//            needsFood: needsFood,
+//            isDailyPriority: isDailyPriority
+//        )
+//    }
+//}
