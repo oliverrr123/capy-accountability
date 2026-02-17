@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DA508BB02F335701000CA24E /* Secrets.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */; };
 		F10000012F40000100000001 /* capyaccountabilityLiveActivity.appex in Embed Live Activity */ = {isa = PBXBuildFile; fileRef = F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -49,10 +48,10 @@
 		1ABFC50E2F31199C002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC52A2F311A91002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		1ABFC5432F311C08002AEF13 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
+		1AE9C1802F43F25300872E47 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		1AF1932A2F311DCE00807705 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DA4B7CBD2F2C094100877845 /* capyaccountability.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = capyaccountability.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DA508B892F3356D7000CA24E /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
-		DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DA803B8B2F31278200B26F63 /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		DAEE88E72F31EBB500311BFD /* capyaccountability.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = capyaccountability.xcodeproj; sourceTree = "<group>"; };
 		F10000022F40000100000001 /* capyaccountabilityLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = capyaccountabilityLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,6 +62,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+			);
+			target = DA4B7CBC2F2C094100877845 /* capyaccountability */;
+		};
+		1AE9C1832F43F50F00872E47 /* Exceptions for "capyaccountabilityLiveActivity" folder in "capyaccountability" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CapyLiveActivityAttributes.swift,
 			);
 			target = DA4B7CBC2F2C094100877845 /* capyaccountability */;
 		};
@@ -92,6 +98,7 @@
 		F10000032F40000100000001 /* capyaccountabilityLiveActivity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				1AE9C1832F43F50F00872E47 /* Exceptions for "capyaccountabilityLiveActivity" folder in "capyaccountability" target */,
 				F100000E2F40000100000001 /* Exceptions for "capyaccountabilityLiveActivity" folder in "capyaccountabilityLiveActivity" target */,
 			);
 			path = capyaccountabilityLiveActivity;
@@ -218,7 +225,7 @@
 		DA4B7CB42F2C094100877845 = {
 			isa = PBXGroup;
 			children = (
-				DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */,
+				1AE9C1802F43F25300872E47 /* Secrets.xcconfig */,
 				1ABFC51D2F311A6E002AEF13 /* Resources */,
 				DA4B7CBF2F2C094100877845 /* capyaccountability */,
 				F10000032F40000100000001 /* capyaccountabilityLiveActivity */,
@@ -419,7 +426,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DA508BB02F335701000CA24E /* Secrets.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -460,7 +466,6 @@
 /* Begin XCBuildConfiguration section */
 		DA4B7CC62F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -524,7 +529,6 @@
 		};
 		DA4B7CC72F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -580,7 +584,6 @@
 		};
 		DA4B7CC92F2C094100877845 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -631,7 +634,6 @@
 		};
 		DA4B7CCA2F2C094100877845 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -680,7 +682,6 @@
 		};
 		F100000B2F40000100000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -712,7 +713,6 @@
 		};
 		F100000C2F40000100000001 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = DA508BAF2F3356FB000CA24E /* Secrets.xcconfig */;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_STYLE = Automatic;
